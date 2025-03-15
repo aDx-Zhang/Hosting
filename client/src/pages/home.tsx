@@ -10,7 +10,7 @@ import { Label } from "@/components/ui/label";
 
 export default function Home() {
   const [searchParams, setSearchParams] = useState<SearchParams>({
-    query: "",
+    query: "a", // Set a default non-empty query to show initial results
     lat: 52.2297,
     lng: 21.0122,
     radius: 10,
@@ -20,9 +20,15 @@ export default function Home() {
   const { data: products, isLoading } = useQuery<Product[]>({
     queryKey: ["/api/products/search", searchParams],
     queryFn: async () => {
-      const res = await apiRequest("POST", "/api/products/search", searchParams);
+      const res = await apiRequest("POST", "/api/products/search", {
+        ...searchParams,
+        minPrice: searchParams.minPrice || undefined,
+        maxPrice: searchParams.maxPrice || undefined,
+        marketplace: searchParams.marketplace || "all"
+      });
       return res.json();
-    }
+    },
+    enabled: searchParams.query.length > 0 // Only search when there's a query
   });
 
   const handleSearch = (params: SearchParams) => {
