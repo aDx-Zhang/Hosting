@@ -1,4 +1,5 @@
 import axios from 'axios';
+import { load } from 'cheerio';
 import { log } from "../vite";
 import type { InsertProduct } from "@shared/schema";
 
@@ -68,42 +69,54 @@ export class MarketplaceService {
   async searchVinted(query: string): Promise<InsertProduct[]> {
     try {
       log(`Searching Vinted for: ${query}`);
-      const response = await axios.get(`https://www.vinted.pl/api/v1/catalog/items`, {
-        params: {
-          keyword: query,
-          page: 1,
-          per_page: 40
-        },
+      const response = await axios.get(`https://www.vinted.pl/catalog/items?search_text=${encodeURIComponent(query)}`, {
         headers: {
           ...this.headers,
-          'Accept': 'application/json',
+          'Accept': 'text/html',
           'Referer': 'https://www.vinted.pl/',
-          'Origin': 'https://www.vinted.pl',
-          'Auth': 'Bearer anonymous'
+          'Origin': 'https://www.vinted.pl'
         }
       });
 
-      log('Vinted API response:', response.data);
+      const $ = load(response.data);
+      const products: InsertProduct[] = [];
 
-      if (response.data && response.data.items) {
-        return response.data.items.map((item: any) => ({
-          title: item.title,
-          description: item.description || item.title,
-          price: parseFloat(item.price) || 0,
-          image: item.photo?.full_size_url || this.getDefaultImage(),
-          marketplace: 'vinted',
-          originalUrl: `https://www.vinted.pl/items/${item.id}`,
-          latitude: 52.2297,
-          longitude: 21.0122
-        }));
-      }
+      // Vinted uses a grid of items with data-testid="item-card"
+      $('[data-testid="item-card"]').each((_, element) => {
+        const $item = $(element);
 
-      return [];
+        // Extract product details
+        const title = $item.find('[data-testid="item-title"]').text().trim();
+        const priceText = $item.find('[data-testid="item-price"]').text().trim();
+        const imageUrl = $item.find('img').attr('src') || this.getDefaultImage();
+        const itemUrl = $item.find('a').attr('href') || '';
+
+        // Extract numeric price
+        const priceMatch = priceText.match(/\d+([.,]\d+)?/);
+        const price = priceMatch ? parseFloat(priceMatch[0].replace(',', '.')) : 0;
+
+        if (title && price) {
+          products.push({
+            title,
+            description: title,
+            price,
+            image: imageUrl,
+            marketplace: 'vinted',
+            originalUrl: itemUrl.startsWith('http') ? itemUrl : `https://www.vinted.pl${itemUrl}`,
+            latitude: 52.2297,
+            longitude: 21.0122
+          });
+        }
+      });
+
+      log(`Found ${products.length} products from Vinted`);
+      return products;
+
     } catch (error) {
       log(`Error fetching from Vinted: ${error}`);
       if (axios.isAxiosError(error) && error.response) {
-        log(`Vinted API error status: ${error.response.status}`);
-        log(`Vinted API error data:`, error.response.data);
+        log(`Vinted scraping error status: ${error.response.status}`);
+        log(`Vinted scraping error data:`, error.response.data);
       }
       return [];
     }
