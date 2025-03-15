@@ -47,7 +47,8 @@ export class MemStorage implements IStorage {
       });
     } catch (error) {
       log(`Error searching products: ${error}`);
-      throw error;
+      // Return empty array instead of throwing to handle errors gracefully
+      return [];
     }
   }
 

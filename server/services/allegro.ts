@@ -32,7 +32,7 @@ export class AllegroAPI {
     try {
       const auth = Buffer.from(`${this.clientId}:${this.clientSecret}`).toString('base64');
       const response = await axios.post<AllegroToken>(
-        'https://allegro.pl.allegrosandbox.pl/auth/oauth/token',
+        'https://allegro.pl/auth/oauth/token',
         'grant_type=client_credentials',
         {
           headers: {
@@ -48,7 +48,11 @@ export class AllegroAPI {
       log('Successfully obtained Allegro access token');
       return this.accessToken;
     } catch (error) {
-      log(`Failed to get Allegro access token: ${error}`);
+      if (axios.isAxiosError(error) && error.response) {
+        log(`Failed to get Allegro access token: ${error.response.status} - ${JSON.stringify(error.response.data)}`);
+      } else {
+        log(`Failed to get Allegro access token: ${error}`);
+      }
       throw new Error('Failed to authenticate with Allegro');
     }
   }
@@ -58,10 +62,11 @@ export class AllegroAPI {
       const token = await this.getAccessToken();
       log(`Searching Allegro with query: ${query}`);
 
-      const response = await axios.get('https://api.allegro.pl.allegrosandbox.pl/offers/listing', {
+      const response = await axios.get('https://api.allegro.pl/offers/listing', {
         headers: {
           'Authorization': `Bearer ${token}`,
           'Accept': 'application/vnd.allegro.public.v1+json',
+          'Content-Type': 'application/vnd.allegro.public.v1+json',
         },
         params: {
           phrase: query || '',
@@ -69,7 +74,7 @@ export class AllegroAPI {
         },
       });
 
-      log(`Allegro API responded with ${response.data.items?.total || 0} items`);
+      log(`Allegro API response: ${JSON.stringify(response.data)}`);
 
       // Process both promoted and regular items
       const items = [
@@ -89,7 +94,11 @@ export class AllegroAPI {
         longitude: item.location?.coordinates?.lon || 21.0122,
       }));
     } catch (error) {
-      log(`Failed to search Allegro products: ${error}`);
+      if (axios.isAxiosError(error) && error.response) {
+        log(`Failed to search Allegro products: ${error.response.status} - ${JSON.stringify(error.response.data)}`);
+      } else {
+        log(`Failed to search Allegro products: ${error}`);
+      }
       throw error;
     }
   }
