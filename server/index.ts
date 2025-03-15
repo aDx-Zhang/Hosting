@@ -3,9 +3,6 @@ import { registerRoutes } from "./routes";
 import { setupVite, serveStatic, log } from "./vite";
 import { storage } from "./storage";
 
-// Import mock data
-import { mockProducts } from "../client/src/lib/mock-data";
-
 const app = express();
 app.use(express.json());
 app.use(express.urlencoded({ extended: false }));
@@ -40,22 +37,8 @@ app.use((req, res, next) => {
   next();
 });
 
-// Initialize mock data
-async function initializeMockData() {
-  try {
-    for (const product of mockProducts) {
-      await storage.createProduct(product);
-    }
-    log('Mock data initialized successfully');
-  } catch (error) {
-    log('Failed to initialize mock data: ' + error);
-  }
-}
 
 (async () => {
-  // Initialize mock data before starting the server
-  await initializeMockData();
-
   const server = await registerRoutes(app);
 
   app.use((err: any, _req: Request, res: Response, _next: NextFunction) => {
