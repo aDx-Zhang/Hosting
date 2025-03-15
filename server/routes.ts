@@ -9,6 +9,11 @@ import { monitoringService } from "./services/monitor";
 // Keep track of all connected clients
 const clients = new Set<WebSocket>();
 
+// Send ping to keep connections alive
+function heartbeat() {
+  this.isAlive = true;
+}
+
 // Broadcast updates to all connected clients
 export function broadcastUpdate(data: unknown) {
   const message = JSON.stringify(data);
@@ -60,14 +65,33 @@ export async function registerRoutes(app: Express) {
   // Initialize WebSocket server
   const wss = new WebSocketServer({ server: httpServer, path: '/ws' });
 
-  wss.on('connection', (ws) => {
+  // Ping clients every 30 seconds to keep connections alive
+  const interval = setInterval(() => {
+    wss.clients.forEach((ws: any) => {
+      if (ws.isAlive === false) {
+        clients.delete(ws);
+        return ws.terminate();
+      }
+
+      ws.isAlive = false;
+      ws.ping();
+    });
+  }, 30000);
+
+  wss.on('connection', (ws: any) => {
     log('New WebSocket client connected');
+    ws.isAlive = true;
+    ws.on('pong', heartbeat);
     clients.add(ws);
 
     ws.on('close', () => {
       log('Client disconnected');
       clients.delete(ws);
     });
+  });
+
+  wss.on('close', () => {
+    clearInterval(interval);
   });
 
   return httpServer;
