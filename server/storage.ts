@@ -1,5 +1,6 @@
 import { type Product, type InsertProduct } from "@shared/schema";
 import type { SearchParams } from "@shared/schema";
+import { broadcastUpdate } from "./routes";
 
 export interface IStorage {
   searchProducts(params: SearchParams): Promise<Product[]>;
@@ -52,6 +53,13 @@ export class MemStorage implements IStorage {
     const id = this.currentId++;
     const newProduct = { ...product, id };
     this.products.set(id, newProduct);
+
+    // Broadcast the new product to all connected clients
+    broadcastUpdate({
+      type: 'new_product',
+      product: newProduct
+    });
+
     return newProduct;
   }
 }

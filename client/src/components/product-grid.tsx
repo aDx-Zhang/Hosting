@@ -1,3 +1,4 @@
+import { useState, useCallback } from 'react';
 import type { Product } from "@shared/schema";
 import {
   Card,
@@ -7,13 +8,48 @@ import {
 } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { MarketplaceBadge } from "./marketplace-badge";
+import { useWebSocket } from "@/hooks/use-websocket";
+import { useToast } from "@/hooks/use-toast";
 
 interface ProductGridProps {
   products: Product[];
   isLoading: boolean;
 }
 
-export function ProductGrid({ products, isLoading }: ProductGridProps) {
+export function ProductGrid({ products: initialProducts, isLoading }: ProductGridProps) {
+  const [products, setProducts] = useState(initialProducts);
+  const { toast } = useToast();
+
+  const handleRealTimeUpdate = useCallback((data: unknown) => {
+    if (typeof data === 'object' && data !== null && 'type' in data) {
+      const update = data as { type: string; product: Product };
+      
+      switch (update.type) {
+        case 'new_product':
+          setProducts(prev => [...prev, update.product]);
+          toast({
+            title: 'New Product',
+            description: `${update.product.title} was just listed!`,
+          });
+          break;
+        case 'price_update':
+          setProducts(prev => 
+            prev.map(p => p.id === update.product.id ? update.product : p)
+          );
+          toast({
+            title: 'Price Updated',
+            description: `${update.product.title} price has changed!`,
+          });
+          break;
+      }
+    }
+  }, [toast]);
+
+  useWebSocket({ onMessage: handleRealTimeUpdate });
+
+  // Use the products from state instead of props
+  const displayProducts = products.length > 0 ? products : initialProducts;
+
   if (isLoading) {
     return (
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
@@ -30,7 +66,7 @@ export function ProductGrid({ products, isLoading }: ProductGridProps) {
     );
   }
 
-  if (products.length === 0) {
+  if (displayProducts.length === 0) {
     return (
       <div className="text-center py-8">
         <p className="text-gray-500">No products found matching your criteria.</p>
@@ -40,7 +76,7 @@ export function ProductGrid({ products, isLoading }: ProductGridProps) {
 
   return (
     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-      {products.map((product) => (
+      {displayProducts.map((product) => (
         <Card key={product.id} className="overflow-hidden">
           <div className="h-48 relative">
             <img
