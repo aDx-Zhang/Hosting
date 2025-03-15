@@ -2,7 +2,7 @@ import { type Product, type InsertProduct } from "@shared/schema";
 import type { SearchParams } from "@shared/schema";
 import { broadcastUpdate } from "./routes";
 import { log } from "./vite";
-import { webScraper } from "./services/scraper";
+import { mockProducts } from "../client/src/lib/mock-data";
 
 export interface IStorage {
   searchProducts(params: SearchParams): Promise<Product[]>;
@@ -17,55 +17,49 @@ export class MemStorage implements IStorage {
   constructor() {
     this.products = new Map();
     this.currentId = 1;
+
+    // Initialize with mock data
+    mockProducts.forEach(product => {
+      const id = this.currentId++;
+      this.products.set(id, { ...product, id });
+    });
   }
 
   async searchProducts(params: SearchParams): Promise<Product[]> {
     try {
-      const results = await Promise.allSettled([
-        webScraper.searchOLX(params.query),
-        webScraper.searchAllegro(params.query)
-      ]);
+      let filteredProducts = Array.from(this.products.values());
 
-      let allProducts: Product[] = [];
-
-      // Process OLX results
-      if (results[0].status === 'fulfilled') {
-        const olxProducts = results[0].value.map(p => ({
-          ...p,
-          id: this.currentId++
-        }));
-        allProducts = [...allProducts, ...olxProducts];
-        log(`Found ${olxProducts.length} products from OLX`);
-      } else {
-        log(`Error fetching from OLX: ${results[0].reason}`);
+      // Apply filters
+      if (params.query) {
+        const searchQuery = params.query.toLowerCase();
+        filteredProducts = filteredProducts.filter(product => 
+          product.title.toLowerCase().includes(searchQuery) ||
+          product.description.toLowerCase().includes(searchQuery)
+        );
       }
 
-      // Process Allegro results
-      if (results[1].status === 'fulfilled') {
-        const allegroProducts = results[1].value.map(p => ({
-          ...p,
-          id: this.currentId++
-        }));
-        allProducts = [...allProducts, ...allegroProducts];
-        log(`Found ${allegroProducts.length} products from Allegro`);
-      } else {
-        log(`Error fetching from Allegro: ${results[1].reason}`);
+      // Price filters
+      if (params.minPrice !== undefined) {
+        filteredProducts = filteredProducts.filter(product => 
+          product.price >= params.minPrice!
+        );
       }
 
-      return allProducts.filter(product => {
-        // Price filters
-        const priceInRange = 
-          (!params.minPrice || product.price >= params.minPrice) &&
-          (!params.maxPrice || product.price <= params.maxPrice);
+      if (params.maxPrice !== undefined) {
+        filteredProducts = filteredProducts.filter(product => 
+          product.price <= params.maxPrice!
+        );
+      }
 
-        // Marketplace filter
-        const marketplaceMatch = 
-          !params.marketplace || 
-          params.marketplace === 'all' || 
-          product.marketplace === params.marketplace;
+      // Marketplace filter
+      if (params.marketplace && params.marketplace !== 'all') {
+        filteredProducts = filteredProducts.filter(product => 
+          product.marketplace === params.marketplace
+        );
+      }
 
-        return priceInRange && marketplaceMatch;
-      });
+      log(`Found ${filteredProducts.length} products matching criteria`);
+      return filteredProducts;
     } catch (error) {
       log(`Error searching products: ${error}`);
       return [];
