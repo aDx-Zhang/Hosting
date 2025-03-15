@@ -1,5 +1,5 @@
 import axios from 'axios';
-import { load } from 'cheerio';
+import puppeteer from 'puppeteer';
 import { log } from "../vite";
 import type { InsertProduct } from "@shared/schema";
 
@@ -67,49 +67,72 @@ export class MarketplaceService {
   }
 
   async searchVinted(query: string): Promise<InsertProduct[]> {
+    let browser;
     try {
-      log(`Searching Vinted for: ${query}`);
-      const response = await axios.get(`https://m.vinted.pl/catalog?search_text=${encodeURIComponent(query)}`, {
-        headers: {
-          ...this.headers,
-          'Accept': 'text/html',
-          'Referer': 'https://m.vinted.pl',
-          'Origin': 'https://m.vinted.pl'
-        }
+      log(`Starting Vinted scraping for query: ${query}`);
+      browser = await puppeteer.launch({
+        headless: true,
+        args: [
+          '--no-sandbox',
+          '--disable-setuid-sandbox',
+          '--disable-dev-shm-usage',
+          '--disable-gpu'
+        ]
       });
 
-      const $ = load(response.data);
-      const products: InsertProduct[] = [];
+      const page = await browser.newPage();
+      await page.setViewport({ width: 1920, height: 1080 });
+      await page.setUserAgent('Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36');
 
-      $('.feed-grid__item').each((_, element) => {
-        const $item = $(element);
-        const title = $item.find('.ItemBox_title__OaKlq').text().trim();
-        const priceText = $item.find('.ItemBox_price__K3ZM3').text().trim();
-        const imageUrl = $item.find('img').attr('src') || this.getDefaultImage();
-        const itemUrl = $item.find('a').attr('href') || '';
+      const searchUrl = `https://www.vinted.pl/catalog?search_text=${encodeURIComponent(query)}`;
+      log(`Accessing Vinted URL: ${searchUrl}`);
 
-        const priceMatch = priceText.match(/\d+([.,]\d+)?/);
-        const price = priceMatch ? parseFloat(priceMatch[0].replace(',', '.')) : 0;
+      await page.goto(searchUrl, { waitUntil: 'networkidle0', timeout: 30000 });
+      log('Page loaded, waiting for content...');
 
-        if (title && price) {
-          products.push({
+      // Wait for items to load
+      await page.waitForSelector('.feed-grid__item', { timeout: 10000 });
+      log('Items container found, extracting data...');
+
+      const products = await page.evaluate(() => {
+        const items = document.querySelectorAll('.feed-grid__item');
+        return Array.from(items, item => {
+          const titleEl = item.querySelector('.ItemBox_title__OaKlq');
+          const priceEl = item.querySelector('.ItemBox_price__K3ZM3');
+          const imageEl = item.querySelector('img');
+          const linkEl = item.querySelector('a');
+
+          const title = titleEl?.textContent?.trim() || '';
+          const priceText = priceEl?.textContent?.trim() || '';
+          const image = imageEl?.getAttribute('src') || '';
+          const link = linkEl?.getAttribute('href') || '';
+
+          // Extract price number
+          const priceMatch = priceText.match(/\d+([.,]\d+)?/);
+          const price = priceMatch ? parseFloat(priceMatch[0].replace(',', '.')) : 0;
+
+          return {
             title,
             description: title,
             price,
-            image: imageUrl,
+            image,
             marketplace: 'vinted',
-            originalUrl: itemUrl.startsWith('http') ? itemUrl : `https://www.vinted.pl${itemUrl}`,
+            originalUrl: link.startsWith('http') ? link : `https://www.vinted.pl${link}`,
             latitude: 52.2297,
             longitude: 21.0122
-          });
-        }
+          };
+        });
       });
 
-      log(`Found ${products.length} products from Vinted`);
+      log(`Successfully extracted ${products.length} products from Vinted`);
+      await browser.close();
       return products;
 
     } catch (error) {
-      log(`Error fetching from Vinted: ${error}`);
+      log(`Error scraping Vinted: ${error}`);
+      if (browser) {
+        await browser.close();
+      }
       return [];
     }
   }
