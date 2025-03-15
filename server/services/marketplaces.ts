@@ -68,18 +68,30 @@ export class MarketplaceService {
   async searchVinted(query: string): Promise<InsertProduct[]> {
     try {
       log(`Searching Vinted for: ${query}`);
-      const response = await axios.get(`https://www.vinted.pl/api/v1/catalog/items/search`, {
+      const response = await axios.get(`https://www.vinted.pl/api/v1/items`, {
         params: {
-          text: query,
+          search_text: query,
+          catalog_ids: '',
+          color_ids: '',
+          brand_ids: '',
+          size_ids: '',
+          material_ids: '',
+          status_ids: '',
+          is_for_swap: '0',
           page: 1,
           per_page: 40,
-          country_id: 'PL'
+          price_from: '',
+          price_to: '',
+          currency: 'PLN'
         },
         headers: {
           ...this.headers,
           'Accept': 'application/json',
-          'Referer': 'https://www.vinted.pl/',
-          'Origin': 'https://www.vinted.pl'
+          'Referer': 'https://www.vinted.pl/catalog',
+          'Origin': 'https://www.vinted.pl',
+          'X-Device-Id': 'web',
+          'X-Platform': 'web',
+          'X-Requested-With': 'XMLHttpRequest'
         }
       });
 
@@ -89,8 +101,8 @@ export class MarketplaceService {
         return response.data.items.map((item: any) => ({
           title: item.title,
           description: item.description || item.title,
-          price: parseFloat(item.price || '0'),
-          image: item.photos?.[0]?.url || this.getDefaultImage(),
+          price: parseFloat(item.price) || 0,
+          image: item.photo?.url || this.getDefaultImage(),
           marketplace: 'vinted',
           originalUrl: `https://www.vinted.pl/items/${item.id}`,
           latitude: 52.2297,
