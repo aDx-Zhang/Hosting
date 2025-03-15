@@ -22,6 +22,13 @@ function getMonitorTitle(params: SearchParams): string {
     parts.push(`"${params.query}"`);
   }
 
+  if (params.minPrice !== undefined || params.maxPrice !== undefined) {
+    const priceRange = [];
+    if (params.minPrice !== undefined) priceRange.push(`${params.minPrice} PLN`);
+    if (params.maxPrice !== undefined) priceRange.push(`${params.maxPrice} PLN`);
+    parts.push(`Price: ${priceRange.join(' - ')}`);
+  }
+
   if (params.marketplace && params.marketplace !== 'all') {
     parts.push(`on ${params.marketplace.toUpperCase()}`);
   }
@@ -42,20 +49,22 @@ export default function Monitor() {
   const { toast } = useToast();
 
   const handleSearch = async (params: SearchParams) => {
-    // Update search parameters when form changes
-    setSearchParams(params);
+    const updatedParams = {
+      ...params,
+      minPrice: params.minPrice ? Number(params.minPrice) : undefined,
+      maxPrice: params.maxPrice ? Number(params.maxPrice) : undefined
+    };
+    setSearchParams(updatedParams);
   };
 
   const startNewMonitor = async () => {
     try {
-      // Start monitoring on the backend
       const res = await apiRequest("POST", "/api/monitor/start", searchParams);
       const data = await res.json();
 
-      // Add new monitor to the state with full search parameters
       setMonitors(prev => [...prev, {
-        id: data.monitorId || searchParams.query || 'all',
-        params: { ...searchParams },
+        id: data.monitorId,
+        params: searchParams,
         products: []
       }]);
 
@@ -97,7 +106,7 @@ export default function Monitor() {
   };
 
   const updateMonitorProducts = (monitorId: string, newProducts: Product[]) => {
-    setMonitors(prev => prev.map(monitor => 
+    setMonitors(prev => prev.map(monitor =>
       monitor.id === monitorId
         ? { ...monitor, products: [...newProducts, ...monitor.products] }
         : monitor
@@ -178,7 +187,7 @@ export default function Monitor() {
                 />
 
                 <div className="mt-4">
-                  <Button 
+                  <Button
                     onClick={startNewMonitor}
                     className="w-full bg-green-600 hover:bg-green-700"
                   >

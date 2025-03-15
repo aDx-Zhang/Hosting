@@ -9,7 +9,14 @@ class MonitoringService {
   private currentId: number = 1;
 
   private generateMonitorId(params: SearchParams): string {
-    return `${params.query || ''}_${params.marketplace || 'all'}_${params.minPrice || ''}_${params.maxPrice || ''}`;
+    const parts = [];
+
+    if (params.query) parts.push(params.query);
+    if (params.marketplace && params.marketplace !== 'all') parts.push(params.marketplace);
+    if (params.minPrice !== undefined) parts.push(`min${params.minPrice}`);
+    if (params.maxPrice !== undefined) parts.push(`max${params.maxPrice}`);
+
+    return parts.length > 0 ? parts.join('_') : 'all';
   }
 
   startMonitoring(params: SearchParams) {
