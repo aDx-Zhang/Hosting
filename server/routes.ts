@@ -4,6 +4,7 @@ import { WebSocketServer, WebSocket } from "ws";
 import { storage } from "./storage";
 import { searchParamsSchema } from "@shared/schema";
 import { log } from "./vite";
+import { monitoringService } from "./services/monitor";
 
 // Keep track of all connected clients
 const clients = new Set<WebSocket>();
@@ -19,21 +20,6 @@ export function broadcastUpdate(data: unknown) {
 }
 
 export async function registerRoutes(app: Express) {
-  // OLX OAuth callback endpoint
-  app.get("/api/auth/olx/callback", async (req, res) => {
-    try {
-      const { code } = req.query;
-      if (!code) {
-        return res.status(400).json({ error: "Authorization code is missing" });
-      }
-      // We'll implement the OAuth token exchange here once we have the credentials
-      res.redirect('/');
-    } catch (error) {
-      log(`OLX OAuth callback error: ${error}`);
-      res.status(500).json({ error: "Failed to authenticate with OLX" });
-    }
-  });
-
   app.post("/api/products/search", async (req, res) => {
     try {
       log(`Search params received: ${JSON.stringify(req.body)}`);
@@ -47,15 +33,26 @@ export async function registerRoutes(app: Express) {
     }
   });
 
-  app.get("/api/products/:id", async (req, res) => {
-    const id = parseInt(req.params.id);
-    const product = await storage.getProduct(id);
-
-    if (!product) {
-      return res.status(404).json({ error: "Product not found" });
+  app.post("/api/monitor/start", async (req, res) => {
+    try {
+      const params = searchParamsSchema.parse(req.body);
+      monitoringService.startMonitoring(params);
+      res.json({ success: true, message: "Monitoring started" });
+    } catch (error) {
+      log(`Monitor start error: ${error}`);
+      res.status(400).json({ error: "Invalid monitor parameters" });
     }
+  });
 
-    res.json(product);
+  app.post("/api/monitor/stop", async (req, res) => {
+    try {
+      const params = searchParamsSchema.parse(req.body);
+      monitoringService.stopMonitoring(params);
+      res.json({ success: true, message: "Monitoring stopped" });
+    } catch (error) {
+      log(`Monitor stop error: ${error}`);
+      res.status(400).json({ error: "Invalid monitor parameters" });
+    }
   });
 
   const httpServer = createServer(app);

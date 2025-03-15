@@ -14,38 +14,39 @@ import { useToast } from "@/hooks/use-toast";
 interface ProductGridProps {
   products: Product[];
   isLoading: boolean;
+  isMonitoring?: boolean;
 }
 
-export function ProductGrid({ products: initialProducts, isLoading }: ProductGridProps) {
+export function ProductGrid({ products: initialProducts, isLoading, isMonitoring }: ProductGridProps) {
   const [products, setProducts] = useState(initialProducts);
   const { toast } = useToast();
 
   const handleRealTimeUpdate = useCallback((data: unknown) => {
     if (typeof data === 'object' && data !== null && 'type' in data) {
-      const update = data as { type: string; product: Product };
-      
-      switch (update.type) {
-        case 'new_product':
-          setProducts(prev => [...prev, update.product]);
+      switch (data.type) {
+        case 'new_monitored_products': {
+          const update = data as { type: string; products: Product[]; monitorId: string };
+          setProducts(prev => [...update.products, ...prev]);
+          toast({
+            title: 'New Products Found!',
+            description: `Found ${update.products.length} new items matching your criteria.`,
+          });
+          break;
+        }
+        case 'new_product': {
+          const update = data as { type: string; product: Product };
+          setProducts(prev => [update.product, ...prev]);
           toast({
             title: 'New Product',
             description: `${update.product.title} was just listed!`,
           });
           break;
-        case 'price_update':
-          setProducts(prev => 
-            prev.map(p => p.id === update.product.id ? update.product : p)
-          );
-          toast({
-            title: 'Price Updated',
-            description: `${update.product.title} price has changed!`,
-          });
-          break;
+        }
       }
     }
   }, [toast]);
 
-  useWebSocket({ onMessage: handleRealTimeUpdate });
+  useWebSocket({ onMessage: isMonitoring ? handleRealTimeUpdate : undefined });
 
   // Use the products from state instead of props
   const displayProducts = products.length > 0 ? products : initialProducts;
