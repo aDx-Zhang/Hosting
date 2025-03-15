@@ -2,6 +2,7 @@ import { type Product, type InsertProduct } from "@shared/schema";
 import type { SearchParams } from "@shared/schema";
 import { broadcastUpdate } from "./routes";
 import { log } from "./vite";
+import { allegroAPI } from "./services/allegro";
 
 export interface IStorage {
   searchProducts(params: SearchParams): Promise<Product[]>;
@@ -19,33 +20,33 @@ export class MemStorage implements IStorage {
   }
 
   async searchProducts(params: SearchParams): Promise<Product[]> {
-    const products = Array.from(this.products.values());
-    log(`Total products in storage: ${products.length}`);
+    try {
+      // Get real Allegro products
+      const allegroProducts = await allegroAPI.searchProducts(params.query);
+      log(`Found ${allegroProducts.length} products from Allegro`);
 
-    return products.filter(product => {
-      // If no query or empty query, include the product
-      if (!params.query) {
-        return true;
-      }
+      // Combine with local products (if any)
+      const localProducts = Array.from(this.products.values());
+      const allProducts = [...allegroProducts, ...localProducts];
 
-      // Text search in title and description
-      const searchQuery = params.query.toLowerCase();
-      const titleMatch = product.title.toLowerCase().includes(searchQuery);
-      const descriptionMatch = product.description.toLowerCase().includes(searchQuery);
+      return allProducts.filter(product => {
+        // Price filters
+        const priceInRange = 
+          (!params.minPrice || product.price >= params.minPrice) &&
+          (!params.maxPrice || product.price <= params.maxPrice);
 
-      // Price filters
-      const priceInRange = 
-        (!params.minPrice || product.price >= params.minPrice) &&
-        (!params.maxPrice || product.price <= params.maxPrice);
+        // Marketplace filter
+        const marketplaceMatch = 
+          !params.marketplace || 
+          params.marketplace === 'all' || 
+          product.marketplace === params.marketplace;
 
-      // Marketplace filter
-      const marketplaceMatch = 
-        !params.marketplace || 
-        params.marketplace === 'all' || 
-        product.marketplace === params.marketplace;
-
-      return (titleMatch || descriptionMatch) && priceInRange && marketplaceMatch;
-    });
+        return priceInRange && marketplaceMatch;
+      });
+    } catch (error) {
+      log(`Error searching products: ${error}`);
+      return [];
+    }
   }
 
   async getProduct(id: number): Promise<Product | undefined> {
