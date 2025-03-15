@@ -1,5 +1,5 @@
-import { useState, useEffect } from "react";
-import { useQuery, useMutation } from "@tanstack/react-query";
+import { useState } from "react";
+import { useQuery } from "@tanstack/react-query";
 import { apiRequest } from "@/lib/queryClient";
 import type { SearchParams, Product } from "@shared/schema";
 import { SearchFilters } from "@/components/search-filters";
@@ -7,7 +7,6 @@ import { ProductGrid } from "@/components/product-grid";
 import { MapSearch } from "@/components/map-search";
 import { Slider } from "@/components/ui/slider";
 import { Label } from "@/components/ui/label";
-import { initializeMockData } from "@/lib/mock-data";
 
 export default function Home() {
   const [searchParams, setSearchParams] = useState<SearchParams>({
@@ -17,11 +16,6 @@ export default function Home() {
     radius: 10,
     marketplace: "all"
   });
-
-  useEffect(() => {
-    // Initialize mock data when component mounts
-    initializeMockData();
-  }, []);
 
   const { data: products, isLoading } = useQuery<Product[]>({
     queryKey: ["/api/products/search", searchParams],
@@ -56,7 +50,7 @@ export default function Home() {
               onSearch={handleSearch}
               defaultValues={searchParams}
             />
-            
+
             <div className="bg-white p-4 rounded-lg shadow-sm space-y-4">
               <Label>Search Radius (km)</Label>
               <Slider
