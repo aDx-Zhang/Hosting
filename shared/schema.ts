@@ -30,12 +30,13 @@ export type Product = typeof products.$inferSelect;
 
 export const searchParamsSchema = z.object({
   query: z.string().min(1),
-  lat: z.number(),
-  lng: z.number(),
-  radius: z.number().min(1).max(50), // radius in km
   marketplace: z.enum(['all', 'olx', 'vinted', 'allegro']).optional(),
   minPrice: z.number().optional(),
   maxPrice: z.number().optional(),
+  // Keep these but make them optional since we're not using the map for now
+  lat: z.number().optional(),
+  lng: z.number().optional(),
+  radius: z.number().optional(),
 });
 
 export type SearchParams = z.infer<typeof searchParamsSchema>;

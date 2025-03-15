@@ -18,25 +18,11 @@ export class MemStorage implements IStorage {
 
   async searchProducts(params: SearchParams): Promise<Product[]> {
     const products = Array.from(this.products.values());
-    
+
     return products.filter(product => {
       // Text search
-      if (!product.title.toLowerCase().includes(params.query.toLowerCase())) {
-        return false;
-      }
-
-      // Distance calculation using Haversine formula
-      const R = 6371; // Earth's radius in km
-      const dLat = (params.lat - product.latitude) * Math.PI / 180;
-      const dLon = (params.lng - product.longitude) * Math.PI / 180;
-      const a = 
-        Math.sin(dLat/2) * Math.sin(dLat/2) +
-        Math.cos(product.latitude * Math.PI / 180) * Math.cos(params.lat * Math.PI / 180) * 
-        Math.sin(dLon/2) * Math.sin(dLon/2);
-      const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
-      const distance = R * c;
-
-      if (distance > params.radius) {
+      if (!product.title.toLowerCase().includes(params.query.toLowerCase()) &&
+          !product.description.toLowerCase().includes(params.query.toLowerCase())) {
         return false;
       }
 
