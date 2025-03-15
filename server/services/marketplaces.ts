@@ -69,29 +69,25 @@ export class MarketplaceService {
   async searchVinted(query: string): Promise<InsertProduct[]> {
     try {
       log(`Searching Vinted for: ${query}`);
-      const response = await axios.get(`https://www.vinted.pl/catalog/items?search_text=${encodeURIComponent(query)}`, {
+      const response = await axios.get(`https://m.vinted.pl/catalog?search_text=${encodeURIComponent(query)}`, {
         headers: {
           ...this.headers,
           'Accept': 'text/html',
-          'Referer': 'https://www.vinted.pl/',
-          'Origin': 'https://www.vinted.pl'
+          'Referer': 'https://m.vinted.pl',
+          'Origin': 'https://m.vinted.pl'
         }
       });
 
       const $ = load(response.data);
       const products: InsertProduct[] = [];
 
-      // Vinted uses a grid of items with data-testid="item-card"
-      $('[data-testid="item-card"]').each((_, element) => {
+      $('.feed-grid__item').each((_, element) => {
         const $item = $(element);
-
-        // Extract product details
-        const title = $item.find('[data-testid="item-title"]').text().trim();
-        const priceText = $item.find('[data-testid="item-price"]').text().trim();
+        const title = $item.find('.ItemBox_title__OaKlq').text().trim();
+        const priceText = $item.find('.ItemBox_price__K3ZM3').text().trim();
         const imageUrl = $item.find('img').attr('src') || this.getDefaultImage();
         const itemUrl = $item.find('a').attr('href') || '';
 
-        // Extract numeric price
         const priceMatch = priceText.match(/\d+([.,]\d+)?/);
         const price = priceMatch ? parseFloat(priceMatch[0].replace(',', '.')) : 0;
 
@@ -114,10 +110,6 @@ export class MarketplaceService {
 
     } catch (error) {
       log(`Error fetching from Vinted: ${error}`);
-      if (axios.isAxiosError(error) && error.response) {
-        log(`Vinted scraping error status: ${error.response.status}`);
-        log(`Vinted scraping error data:`, error.response.data);
-      }
       return [];
     }
   }

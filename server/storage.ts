@@ -25,28 +25,22 @@ export class MemStorage implements IStorage {
       log(`Searching for products with query: ${query}`);
 
       // Get products from marketplaces
-      const [olxProducts, allegroProducts, vintedProducts] = await Promise.all([
+      const results = await Promise.allSettled([
         marketplaceService.searchOLX(query),
         marketplaceService.searchAllegro(query),
         marketplaceService.searchVinted(query)
       ]);
 
-      // Combine and assign IDs to products
+      // Combine successful results
       let allProducts: Product[] = [];
 
-      olxProducts.forEach(product => {
-        const id = this.currentId++;
-        allProducts.push({ ...product, id });
-      });
-
-      allegroProducts.forEach(product => {
-        const id = this.currentId++;
-        allProducts.push({ ...product, id });
-      });
-
-      vintedProducts.forEach(product => {
-        const id = this.currentId++;
-        allProducts.push({ ...product, id });
+      results.forEach((result) => {
+        if (result.status === 'fulfilled' && result.value.length > 0) {
+          result.value.forEach(product => {
+            const id = this.currentId++;
+            allProducts.push({ ...product, id });
+          });
+        }
       });
 
       log(`Total products found: ${allProducts.length}`);
