@@ -2,7 +2,7 @@ import { type Product, type InsertProduct } from "@shared/schema";
 import type { SearchParams } from "@shared/schema";
 import { broadcastUpdate } from "./routes";
 import { log } from "./vite";
-import { mockProducts } from "../client/src/lib/mock-data";
+import { webScraper } from "./services/scraper";
 
 export interface IStorage {
   searchProducts(params: SearchParams): Promise<Product[]>;
@@ -17,26 +17,36 @@ export class MemStorage implements IStorage {
   constructor() {
     this.products = new Map();
     this.currentId = 1;
-
-    // Initialize with mock data
-    mockProducts.forEach(product => {
-      const id = this.currentId++;
-      this.products.set(id, { ...product, id });
-    });
   }
 
   async searchProducts(params: SearchParams): Promise<Product[]> {
     try {
-      let filteredProducts = Array.from(this.products.values());
+      const query = params.query || '';
+      log(`Searching for products with query: ${query}`);
+
+      // Get products from both marketplaces
+      const [olxProducts, allegroProducts] = await Promise.all([
+        webScraper.searchOLX(query),
+        webScraper.searchAllegro(query)
+      ]);
+
+      // Combine and assign IDs to products
+      let allProducts: Product[] = [];
+
+      olxProducts.forEach(product => {
+        const id = this.currentId++;
+        allProducts.push({ ...product, id });
+      });
+
+      allegroProducts.forEach(product => {
+        const id = this.currentId++;
+        allProducts.push({ ...product, id });
+      });
+
+      log(`Total products found: ${allProducts.length}`);
 
       // Apply filters
-      if (params.query) {
-        const searchQuery = params.query.toLowerCase();
-        filteredProducts = filteredProducts.filter(product => 
-          product.title.toLowerCase().includes(searchQuery) ||
-          product.description.toLowerCase().includes(searchQuery)
-        );
-      }
+      let filteredProducts = allProducts;
 
       // Price filters
       if (params.minPrice !== undefined) {
@@ -58,7 +68,7 @@ export class MemStorage implements IStorage {
         );
       }
 
-      log(`Found ${filteredProducts.length} products matching criteria`);
+      log(`Found ${filteredProducts.length} products after applying filters`);
       return filteredProducts;
     } catch (error) {
       log(`Error searching products: ${error}`);

@@ -5,44 +5,53 @@ import type { InsertProduct } from '@shared/schema';
 export class WebScraper {
   private async setupBrowser() {
     return await puppeteer.launch({
-      headless: 'new',
+      headless: true,
       args: [
         '--no-sandbox',
         '--disable-setuid-sandbox',
         '--disable-dev-shm-usage',
         '--disable-gpu',
-        '--disable-software-rasterizer'
+        '--disable-software-rasterizer',
+        '--window-size=1920,1080'
       ]
     });
   }
 
   async searchOLX(query: string): Promise<InsertProduct[]> {
+    let browser;
     try {
       log(`Starting OLX scraping for query: ${query}`);
-      const browser = await this.setupBrowser();
+      browser = await this.setupBrowser();
 
       const page = await browser.newPage();
+      await page.setViewport({ width: 1920, height: 1080 });
       await page.setUserAgent('Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36');
 
-      const searchUrl = `https://www.olx.pl/oferty/q-${encodeURIComponent(query)}/`;
-      log(`Accessing URL: ${searchUrl}`);
+      const searchUrl = `https://www.olx.pl/d/oferty/q-${encodeURIComponent(query)}/`;
+      log(`Accessing OLX URL: ${searchUrl}`);
 
       await page.goto(searchUrl, { waitUntil: 'networkidle0', timeout: 30000 });
+      log('Page loaded, waiting for content...');
+
+      // Wait for the listings container
+      await page.waitForSelector('[data-testid="listing-grid"]', { timeout: 10000 });
+      log('Listings container found, extracting data...');
 
       const products = await page.evaluate(() => {
         const items = document.querySelectorAll('[data-cy="l-card"]');
+        log(`Found ${items.length} items on the page`);
+
         return Array.from(items, item => {
-          const titleEl = item.querySelector('[data-testid="ad-title"]');
-          const priceEl = item.querySelector('[data-testid="ad-price"]');
+          const titleEl = item.querySelector('h6');
+          const priceEl = item.querySelector('p[data-testid="ad-price"]');
           const imageEl = item.querySelector('img');
           const linkEl = item.querySelector('a');
-          const locationEl = item.querySelector('[data-testid="location-date"]');
 
           const title = titleEl?.textContent?.trim() || '';
           const priceText = priceEl?.textContent?.trim() || '';
           const image = imageEl?.getAttribute('src') || '';
           const link = linkEl?.getAttribute('href') || '';
-          const description = locationEl?.textContent?.trim() || '';
+          const description = item.textContent?.trim() || '';
 
           // Extract price number
           const priceMatch = priceText.match(/\d+([.,]\d+)?/);
@@ -54,42 +63,55 @@ export class WebScraper {
             price: numericPrice,
             image,
             marketplace: 'olx',
-            originalUrl: link.startsWith('http') ? link : `https://olx.pl${link}`,
+            originalUrl: link.startsWith('http') ? link : `https://www.olx.pl${link}`,
             latitude: 52.2297,
             longitude: 21.0122
           };
         });
       });
 
+      log(`Successfully extracted ${products.length} products from OLX`);
       await browser.close();
-      log(`Found ${products.length} products from OLX`);
       return products;
+
     } catch (error) {
       log(`Error scraping OLX: ${error}`);
+      if (browser) {
+        await browser.close();
+      }
       return [];
     }
   }
 
   async searchAllegro(query: string): Promise<InsertProduct[]> {
+    let browser;
     try {
       log(`Starting Allegro scraping for query: ${query}`);
-      const browser = await this.setupBrowser();
+      browser = await this.setupBrowser();
 
       const page = await browser.newPage();
+      await page.setViewport({ width: 1920, height: 1080 });
       await page.setUserAgent('Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36');
 
       const searchUrl = `https://allegro.pl/listing?string=${encodeURIComponent(query)}`;
-      log(`Accessing URL: ${searchUrl}`);
+      log(`Accessing Allegro URL: ${searchUrl}`);
 
       await page.goto(searchUrl, { waitUntil: 'networkidle0', timeout: 30000 });
+      log('Page loaded, waiting for content...');
+
+      // Wait for listings to load
+      await page.waitForSelector('[data-box-name="items-v3"]', { timeout: 10000 });
+      log('Listings container found, extracting data...');
 
       const products = await page.evaluate(() => {
-        const items = document.querySelectorAll('article[data-role="offer"]');
+        const items = document.querySelectorAll('[data-box-name="items-v3"] > div > div');
+        log(`Found ${items.length} items on the page`);
+
         return Array.from(items, item => {
-          const titleEl = item.querySelector('[data-role="offer-title"]');
-          const priceEl = item.querySelector('[data-role="offer-price"]');
+          const titleEl = item.querySelector('h2');
+          const priceEl = item.querySelector('[aria-label*="cena"]');
           const imageEl = item.querySelector('img');
-          const linkEl = item.querySelector('a[data-role="offer-link"]');
+          const linkEl = item.querySelector('a');
 
           const title = titleEl?.textContent?.trim() || '';
           const priceText = priceEl?.textContent?.trim() || '';
@@ -102,7 +124,7 @@ export class WebScraper {
 
           return {
             title,
-            description: 'Allegro Lokalne',
+            description: title,
             price: numericPrice,
             image,
             marketplace: 'allegro',
@@ -113,11 +135,15 @@ export class WebScraper {
         });
       });
 
+      log(`Successfully extracted ${products.length} products from Allegro`);
       await browser.close();
-      log(`Found ${products.length} products from Allegro`);
       return products;
+
     } catch (error) {
       log(`Error scraping Allegro: ${error}`);
+      if (browser) {
+        await browser.close();
+      }
       return [];
     }
   }
