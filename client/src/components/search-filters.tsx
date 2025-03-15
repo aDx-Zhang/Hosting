@@ -21,9 +21,10 @@ import {
 interface SearchFiltersProps {
   onSearch: (params: SearchParams) => void;
   defaultValues: SearchParams;
+  hideSearchButton?: boolean;
 }
 
-export function SearchFilters({ onSearch, defaultValues }: SearchFiltersProps) {
+export function SearchFilters({ onSearch, defaultValues, hideSearchButton }: SearchFiltersProps) {
   const form = useForm<SearchParams>({
     resolver: zodResolver(searchParamsSchema),
     defaultValues,
@@ -112,9 +113,11 @@ export function SearchFilters({ onSearch, defaultValues }: SearchFiltersProps) {
           />
         </div>
 
-        <Button type="submit" className="w-full">
-          Search
-        </Button>
+        {!hideSearchButton && (
+          <Button type="submit" className="w-full">
+            Search
+          </Button>
+        )}
       </form>
     </Form>
   );

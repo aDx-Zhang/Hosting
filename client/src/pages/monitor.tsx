@@ -158,6 +158,7 @@ export default function Monitor() {
                 <SearchFilters
                   onSearch={handleSearch}
                   defaultValues={searchParams}
+                  hideSearchButton={true}
                 />
 
                 <div className="mt-4">
