@@ -68,48 +68,34 @@ export class MarketplaceService {
   async searchVinted(query: string): Promise<InsertProduct[]> {
     try {
       log(`Searching Vinted for: ${query}`);
-      const response = await axios.get(`https://www.vinted.pl/api/v2/catalog/items`, {
+      const response = await axios.get(`https://www.vinted.pl/api/v1/catalog/items/search`, {
         params: {
-          search_text: query,
-          per_page: 24,
-          order: 'newest_first',
-          currency: 'PLN',
-          localization: 'pl',
-          catalog_ids: '',
-          color_ids: '',
-          brand_ids: '',
-          size_ids: '',
-          material_ids: '',
-          status_ids: '',
-          country_id: 'PL',
-          is_for_swap: '0',
-          page: 1
+          text: query,
+          page: 1,
+          per_page: 40,
+          country_id: 'PL'
         },
         headers: {
           ...this.headers,
-          'Accept': 'application/json, text/plain, */*',
-          'Referer': 'https://www.vinted.pl/catalog',
-          'Origin': 'https://www.vinted.pl',
-          'x-app-version': '2024.6.0',
-          'cookie': 'ab_test_variant=new_home_feed; secure_user_id=1; _vinted_fr_session=1'
+          'Accept': 'application/json',
+          'Referer': 'https://www.vinted.pl/',
+          'Origin': 'https://www.vinted.pl'
         }
       });
 
       log('Vinted API response received');
 
       if (response.data && response.data.items) {
-        return response.data.items.map((item: any) => {
-          return {
-            title: item.title,
-            description: item.description || item.title,
-            price: parseFloat(item.price || '0'),
-            image: item.photos?.[0]?.url || this.getDefaultImage(),
-            marketplace: 'vinted',
-            originalUrl: item.url || `https://www.vinted.pl/items/${item.id}`,
-            latitude: 52.2297,
-            longitude: 21.0122
-          };
-        });
+        return response.data.items.map((item: any) => ({
+          title: item.title,
+          description: item.description || item.title,
+          price: parseFloat(item.price || '0'),
+          image: item.photos?.[0]?.url || this.getDefaultImage(),
+          marketplace: 'vinted',
+          originalUrl: `https://www.vinted.pl/items/${item.id}`,
+          latitude: 52.2297,
+          longitude: 21.0122
+        }));
       }
 
       return [];
