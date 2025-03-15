@@ -19,6 +19,21 @@ export function broadcastUpdate(data: unknown) {
 }
 
 export async function registerRoutes(app: Express) {
+  // OLX OAuth callback endpoint
+  app.get("/api/auth/olx/callback", async (req, res) => {
+    try {
+      const { code } = req.query;
+      if (!code) {
+        return res.status(400).json({ error: "Authorization code is missing" });
+      }
+      // We'll implement the OAuth token exchange here once we have the credentials
+      res.redirect('/');
+    } catch (error) {
+      log(`OLX OAuth callback error: ${error}`);
+      res.status(500).json({ error: "Failed to authenticate with OLX" });
+    }
+  });
+
   app.post("/api/products/search", async (req, res) => {
     try {
       log(`Search params received: ${JSON.stringify(req.body)}`);

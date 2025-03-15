@@ -3,6 +3,7 @@ import type { SearchParams } from "@shared/schema";
 import { broadcastUpdate } from "./routes";
 import { log } from "./vite";
 import { allegroAPI } from "./services/allegro";
+import { olxAPI } from "./services/olx";
 
 export interface IStorage {
   searchProducts(params: SearchParams): Promise<Product[]>;
@@ -21,15 +22,33 @@ export class MemStorage implements IStorage {
 
   async searchProducts(params: SearchParams): Promise<Product[]> {
     try {
-      // Get real Allegro products
-      const allegroProducts = await allegroAPI.searchProducts(params.query);
-      log(`Found ${allegroProducts.length} products from Allegro`);
+      const results = await Promise.allSettled([
+        allegroAPI.searchProducts(params.query),
+        olxAPI.searchProducts(params.query)
+      ]);
 
-      // Combine with local products (if any)
+      let allProducts: Product[] = [];
+
+      // Process Allegro results
+      if (results[0].status === 'fulfilled') {
+        allProducts = [...allProducts, ...results[0].value];
+        log(`Found ${results[0].value.length} products from Allegro`);
+      } else {
+        log(`Error fetching from Allegro: ${results[0].reason}`);
+      }
+
+      // Process OLX results
+      if (results[1].status === 'fulfilled') {
+        allProducts = [...allProducts, ...results[1].value];
+        log(`Found ${results[1].value.length} products from OLX`);
+      } else {
+        log(`Error fetching from OLX: ${results[1].reason}`);
+      }
+
+      // Add local products
       const localProducts = Array.from(this.products.values());
+      allProducts = [...allProducts, ...localProducts];
       log(`Found ${localProducts.length} products from local storage`);
-
-      const allProducts = [...allegroProducts, ...localProducts];
 
       return allProducts.filter(product => {
         // Price filters
