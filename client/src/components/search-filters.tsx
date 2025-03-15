@@ -30,10 +30,19 @@ export function SearchFilters({ onSearch, defaultValues, hideSearchButton }: Sea
     defaultValues,
   });
 
+  const handleSubmit = (values: SearchParams) => {
+    const params = {
+      ...values,
+      minPrice: values.minPrice ? Number(values.minPrice) : undefined,
+      maxPrice: values.maxPrice ? Number(values.maxPrice) : undefined
+    };
+    onSearch(params);
+  };
+
   return (
     <Form {...form}>
       <form
-        onSubmit={form.handleSubmit(onSearch)}
+        onSubmit={form.handleSubmit(handleSubmit)}
         className="space-y-4 p-4 bg-white rounded-lg shadow-sm"
       >
         <FormField
@@ -87,7 +96,7 @@ export function SearchFilters({ onSearch, defaultValues, hideSearchButton }: Sea
                     type="number"
                     placeholder="Min"
                     {...field}
-                    onChange={(e) => field.onChange(Number(e.target.value))}
+                    onChange={(e) => field.onChange(e.target.value ? Number(e.target.value) : undefined)}
                   />
                 </FormControl>
               </FormItem>
@@ -105,7 +114,7 @@ export function SearchFilters({ onSearch, defaultValues, hideSearchButton }: Sea
                     type="number"
                     placeholder="Max"
                     {...field}
-                    onChange={(e) => field.onChange(Number(e.target.value))}
+                    onChange={(e) => field.onChange(e.target.value ? Number(e.target.value) : undefined)}
                   />
                 </FormControl>
               </FormItem>

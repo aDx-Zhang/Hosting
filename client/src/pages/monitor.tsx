@@ -22,6 +22,13 @@ function formatMonitorTitle(params: SearchParams): string {
     parts.push(`"${params.query}"`);
   }
 
+  if (params.minPrice !== undefined || params.maxPrice !== undefined) {
+    const priceRange = [];
+    if (params.minPrice !== undefined) priceRange.push(`${params.minPrice} PLN`);
+    if (params.maxPrice !== undefined) priceRange.push(`${params.maxPrice} PLN`);
+    parts.push(`(${priceRange.join(' - ')})`);
+  }
+
   if (params.marketplace && params.marketplace !== 'all') {
     parts.push(`on ${params.marketplace.toUpperCase()}`);
   }
@@ -49,12 +56,21 @@ export default function Monitor() {
 
   const startNewMonitor = async () => {
     try {
-      const res = await apiRequest("POST", "/api/monitor/start", searchParams);
+      // Make sure we have the correct parameters
+      const monitorParams = {
+        ...searchParams,
+        query: searchParams.query || "",
+        marketplace: searchParams.marketplace || "all",
+        minPrice: searchParams.minPrice ? Number(searchParams.minPrice) : undefined,
+        maxPrice: searchParams.maxPrice ? Number(searchParams.maxPrice) : undefined
+      };
+
+      const res = await apiRequest("POST", "/api/monitor/start", monitorParams);
       const data = await res.json();
 
       setMonitors(prev => [...prev, {
         id: data.monitorId,
-        params: searchParams,
+        params: monitorParams,
         products: []
       }]);
 
@@ -132,10 +148,11 @@ export default function Monitor() {
                           <h3 className="font-semibold">
                             Monitoring: {formatMonitorTitle(monitor.params)}
                           </h3>
-                          <p className="text-sm text-muted-foreground">
-                            {monitor.params.minPrice && `Min: ${monitor.params.minPrice} PLN`}
-                            {monitor.params.maxPrice && ` | Max: ${monitor.params.maxPrice} PLN`}
-                          </p>
+                          {(monitor.params.minPrice !== undefined || monitor.params.maxPrice !== undefined) && (
+                            <p className="text-sm text-muted-foreground">
+                              Price range: {monitor.params.minPrice || 0} - {monitor.params.maxPrice || '∞'} PLN
+                            </p>
+                          )}
                         </div>
                         <Button
                           variant="ghost"
