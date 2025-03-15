@@ -1,5 +1,5 @@
 import axios from 'axios';
-import { load } from 'cheerio';
+import puppeteer from 'puppeteer';
 import { log } from "../vite";
 import type { InsertProduct } from "@shared/schema";
 
@@ -67,42 +67,65 @@ export class MarketplaceService {
   }
 
   async searchVinted(query: string): Promise<InsertProduct[]> {
+    let browser;
     try {
-      log(`Searching Vinted for: ${query}`);
-      const response = await axios.get(`https://www.vinted.pl/catalog?search_text=${encodeURIComponent(query)}`, {
-        headers: {
-          ...this.headers,
-          'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,image/apng,*/*;q=0.8',
-          'Cache-Control': 'no-cache',
-          'Pragma': 'no-cache',
-          'Sec-Fetch-Dest': 'document',
-          'Sec-Fetch-Mode': 'navigate',
-          'Sec-Fetch-Site': 'none',
-          'Sec-Fetch-User': '?1',
-          'Upgrade-Insecure-Requests': '1'
-        }
+      log(`Starting Vinted scraping for query: ${query}`);
+      browser = await puppeteer.launch({
+        headless: true,
+        executablePath: 'chromium',
+        args: [
+          '--no-sandbox',
+          '--disable-setuid-sandbox',
+          '--disable-dev-shm-usage',
+          '--disable-gpu',
+          '--disable-software-rasterizer',
+        ]
       });
 
-      const $ = load(response.data);
-      log('Vinted page loaded, parsing content...');
+      const page = await browser.newPage();
+      await page.setUserAgent('Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/121.0.0.0 Safari/537.36');
+      await page.setViewport({ width: 1920, height: 1080 });
 
-      const products: InsertProduct[] = [];
+      // Set request headers
+      await page.setExtraHTTPHeaders({
+        'Accept-Language': 'pl-PL,pl;q=0.9,en-US;q=0.8,en;q=0.7',
+        'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,*/*;q=0.8',
+        'DNT': '1',
+        'Connection': 'keep-alive',
+        'Upgrade-Insecure-Requests': '1',
+      });
 
-      // Vinted uses a div with class web_ui__ItemBox
-      $('div[data-testid="item-box"]').each((_, element) => {
-        const $element = $(element);
+      const url = `https://www.vinted.pl/catalog?search_text=${encodeURIComponent(query)}`;
+      log(`Accessing Vinted URL: ${url}`);
 
-        const title = $element.find('h3').text().trim();
-        const priceText = $element.find('div[data-testid="price"]').text().trim();
-        const image = $element.find('img').attr('src') || this.getDefaultImage();
-        const link = $element.find('a').attr('href') || '';
+      await page.goto(url, { 
+        waitUntil: 'networkidle0',
+        timeout: 30000 
+      });
 
-        // Extract price
-        const priceMatch = priceText.match(/\d+([.,]\d+)?/);
-        const price = priceMatch ? parseFloat(priceMatch[0].replace(',', '.')) : 0;
+      // Wait for items to load
+      await page.waitForSelector('div[data-testid="item-box"]', { timeout: 10000 });
+      log('Items found, extracting data...');
 
-        if (title && price) {
-          products.push({
+      // Extract product data
+      const products = await page.evaluate(() => {
+        const items = document.querySelectorAll('div[data-testid="item-box"]');
+        return Array.from(items, item => {
+          const titleEl = item.querySelector('h2');
+          const priceEl = item.querySelector('div[data-testid="price"]');
+          const imageEl = item.querySelector('img');
+          const linkEl = item.querySelector('a[href*="/items/"]');
+
+          const title = titleEl?.textContent?.trim() || '';
+          const priceText = priceEl?.textContent?.trim() || '';
+          const image = imageEl?.getAttribute('src') || '';
+          const link = linkEl?.getAttribute('href') || '';
+
+          // Extract price from text like "100,00 zł"
+          const priceMatch = priceText.match(/\d+([.,]\d+)?/);
+          const price = priceMatch ? parseFloat(priceMatch[0].replace(',', '.')) : 0;
+
+          return {
             title,
             description: title,
             price,
@@ -111,15 +134,19 @@ export class MarketplaceService {
             originalUrl: link.startsWith('http') ? link : `https://www.vinted.pl${link}`,
             latitude: 52.2297,
             longitude: 21.0122
-          });
-        }
+          };
+        });
       });
 
-      log(`Found ${products.length} products on Vinted`);
-      return products;
+      log(`Successfully extracted ${products.length} products from Vinted`);
+      await browser.close();
+      return products.filter(p => p.title && p.price > 0);
 
     } catch (error) {
       log(`Error scraping Vinted: ${error}`);
+      if (browser) {
+        await browser.close();
+      }
       return [];
     }
   }
