@@ -2,7 +2,7 @@ import { type Product, type InsertProduct } from "@shared/schema";
 import type { SearchParams } from "@shared/schema";
 import { broadcastUpdate } from "./routes";
 import { log } from "./vite";
-import { webScraper } from "./services/scraper";
+import { marketplaceService } from "./services/marketplaces";
 
 export interface IStorage {
   searchProducts(params: SearchParams): Promise<Product[]>;
@@ -24,10 +24,10 @@ export class MemStorage implements IStorage {
       const query = params.query || '';
       log(`Searching for products with query: ${query}`);
 
-      // Get products from both marketplaces
+      // Get products from marketplaces
       const [olxProducts, allegroProducts] = await Promise.all([
-        webScraper.searchOLX(query),
-        webScraper.searchAllegro(query)
+        marketplaceService.searchOLX(query),
+        marketplaceService.searchAllegro(query)
       ]);
 
       // Combine and assign IDs to products
