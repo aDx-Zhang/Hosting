@@ -69,11 +69,19 @@ export class MarketplaceService {
   async searchAllegro(query: string): Promise<InsertProduct[]> {
     try {
       log(`Searching Allegro for: ${query}`);
-      const response = await axios.get(`https://m.allegro.pl/api/v1/listings?phrase=${encodeURIComponent(query)}&sort=relevance&limit=40&offerTypeBuyNow=1&startingTime=P30D&itemsPerPage=40&searchMode=DESCRIPTIONS&include=-filters,-categories&string=${encodeURIComponent(query)}&stan=używane`, {
+      const response = await axios.get(`https://m.allegro.pl/api/v1/listings`, {
+        params: {
+          phrase: query,
+          city: 'Warszawa', // Add city parameter for local listings
+          sort: '+distanceCity',
+          limit: 40,
+          include: '-filters,-categories',
+          source: 'ALLEGRO_LOKALNIE' // This parameter ensures we get local listings
+        },
         headers: {
           ...this.headers,
           'Accept': 'application/vnd.allegro.public.v1+json',
-          'Referer': 'https://m.allegro.pl/',
+          'Referer': 'https://m.allegro.pl/lokalnie',
           'Origin': 'https://m.allegro.pl',
           'Platform': 'mobile'
         }
@@ -95,8 +103,8 @@ export class MarketplaceService {
             image: imageUrl,
             marketplace: 'allegro',
             originalUrl: `https://allegro.pl/oferta/${item.id}`,
-            latitude: 52.2297,
-            longitude: 21.0122
+            latitude: item.location?.coordinates?.lat || 52.2297,
+            longitude: item.location?.coordinates?.lon || 21.0122
           };
         });
       }
@@ -111,12 +119,27 @@ export class MarketplaceService {
   async searchVinted(query: string): Promise<InsertProduct[]> {
     try {
       log(`Searching Vinted for: ${query}`);
-      const response = await axios.get(`https://www.vinted.pl/api/v2/catalog/items?search_text=${encodeURIComponent(query)}&per_page=40`, {
+      const response = await axios.get(`https://www.vinted.pl/catalog/items`, {
+        params: {
+          search_text: query,
+          per_page: 40,
+          catalog_ids: '', // Empty to search all categories
+          color_ids: '',
+          brand_ids: '',
+          size_ids: '',
+          material_ids: '',
+          status_ids: '',
+          country_ids: 'PL',
+          city_ids: '',
+          is_for_swap: '0',
+          page: 1
+        },
         headers: {
           ...this.headers,
           'Accept': 'application/json',
           'Referer': 'https://www.vinted.pl/',
-          'Origin': 'https://www.vinted.pl'
+          'Origin': 'https://www.vinted.pl',
+          'X-Requested-With': 'XMLHttpRequest'
         }
       });
 
