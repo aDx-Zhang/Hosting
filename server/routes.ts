@@ -24,6 +24,7 @@ export async function registerRoutes(app: Express) {
       log(`Search params received: ${JSON.stringify(req.body)}`);
       const params = searchParamsSchema.parse(req.body);
       const products = await storage.searchProducts(params);
+      log(`Found ${products.length} products`);
       res.json(products);
     } catch (error) {
       log(`Search validation error: ${error}`);

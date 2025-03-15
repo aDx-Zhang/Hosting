@@ -16,11 +16,14 @@ export default function Home() {
   const { data: products, isLoading } = useQuery<Product[]>({
     queryKey: ["/api/products/search", searchParams],
     queryFn: async () => {
+      console.log('Searching with params:', searchParams); // Debug log
       const res = await apiRequest("POST", "/api/products/search", {
         ...searchParams,
         query: searchParams.query || "" // Allow empty query to show all products
       });
-      return res.json();
+      const data = await res.json();
+      console.log('Search results:', data); // Debug log
+      return data;
     }
   });
 

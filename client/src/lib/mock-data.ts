@@ -1,5 +1,4 @@
 import type { InsertProduct } from "@shared/schema";
-import { storage } from "../../../server/storage";
 
 export const mockProducts: InsertProduct[] = [
   {
@@ -53,14 +52,3 @@ export const mockProducts: InsertProduct[] = [
     longitude: 21.0300
   }
 ];
-
-export async function initializeMockData() {
-  try {
-    for (const product of mockProducts) {
-      await storage.createProduct(product);
-    }
-    console.log('Mock data initialized successfully');
-  } catch (error) {
-    console.error('Failed to initialize mock data:', error);
-  }
-}
