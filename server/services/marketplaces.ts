@@ -4,55 +4,50 @@ import type { InsertProduct } from "@shared/schema";
 
 export class MarketplaceService {
   private readonly headers = {
-    'User-Agent': 'Mozilla/5.0 (iPhone; CPU iPhone OS 14_7_1 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/14.1.2 Mobile/15E148 Safari/604.1',
-    'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,*/*;q=0.8',
+    'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/121.0.0.0 Safari/537.36',
+    'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8',
     'Accept-Language': 'pl-PL,pl;q=0.9,en-US;q=0.8,en;q=0.7',
-    'Cache-Control': 'no-cache',
-    'Pragma': 'no-cache'
+    'Accept-Encoding': 'gzip, deflate, br',
+    'Connection': 'keep-alive',
+    'Cache-Control': 'max-age=0',
+    'Sec-Ch-Ua': '"Not A(Brand";v="99", "Google Chrome";v="121", "Chromium";v="121"',
+    'Sec-Ch-Ua-Mobile': '?0',
+    'Sec-Ch-Ua-Platform': '"Windows"',
+    'Upgrade-Insecure-Requests': '1',
+    'Sec-Fetch-Site': 'none',
+    'Sec-Fetch-Mode': 'navigate',
+    'Sec-Fetch-User': '?1',
+    'Sec-Fetch-Dest': 'document'
   };
 
   async searchOLX(query: string): Promise<InsertProduct[]> {
     try {
       log(`Searching OLX for: ${query}`);
-      const response = await axios.get(`https://m.olx.pl/oferty/q-${encodeURIComponent(query)}/`, {
-        headers: this.headers
+      const response = await axios.get(`https://www.olx.pl/api/v1/offers/?offset=0&limit=40&query=${encodeURIComponent(query)}`, {
+        headers: {
+          ...this.headers,
+          'Accept': 'application/json, text/plain, */*',
+          'Referer': 'https://www.olx.pl/',
+          'Origin': 'https://www.olx.pl'
+        }
       });
 
-      const html = response.data;
-      // Extract product data from HTML using string operations
-      const products: InsertProduct[] = [];
-      const matches = html.match(/<div[^>]*class="css-[^"]*"[^>]*data-cy="l-card"[^>]*>[\s\S]*?<\/div>/g);
+      log('OLX API response received');
 
-      if (matches) {
-        matches.forEach((match: string) => {
-          const titleMatch = match.match(/<h6[^>]*>([^<]+)<\/h6>/);
-          const priceMatch = match.match(/data-testid="ad-price"[^>]*>([^<]+)<\/p>/);
-          const imageMatch = match.match(/img[^>]+src="([^"]+)"/);
-          const linkMatch = match.match(/href="([^"]+)"/);
-
-          if (titleMatch && priceMatch) {
-            const title = titleMatch[1].trim();
-            const priceStr = priceMatch[1].trim();
-            const numericPrice = parseFloat(priceStr.replace(/[^\d.,]/g, '').replace(',', '.')) || 0;
-            const image = imageMatch ? imageMatch[1] : '';
-            const link = linkMatch ? linkMatch[1] : '';
-
-            products.push({
-              title,
-              description: title,
-              price: numericPrice,
-              image,
-              marketplace: 'olx',
-              originalUrl: link.startsWith('http') ? link : `https://m.olx.pl${link}`,
-              latitude: 52.2297,
-              longitude: 21.0122
-            });
-          }
-        });
+      if (response.data && response.data.data) {
+        return response.data.data.map((item: any) => ({
+          title: item.title,
+          description: item.description || item.title,
+          price: parseFloat(item.params.find((p: any) => p.key === 'price')?.value?.value || '0'),
+          image: item.photos?.[0]?.link || '',
+          marketplace: 'olx',
+          originalUrl: item.url,
+          latitude: item.location?.lat || 52.2297,
+          longitude: item.location?.lon || 21.0122
+        }));
       }
 
-      log(`Found ${products.length} products from OLX`);
-      return products;
+      return [];
     } catch (error) {
       log(`Error fetching from OLX: ${error}`);
       return [];
@@ -62,43 +57,31 @@ export class MarketplaceService {
   async searchAllegro(query: string): Promise<InsertProduct[]> {
     try {
       log(`Searching Allegro for: ${query}`);
-      const response = await axios.get(`https://allegro.pl.allegrosandbox.pl/listing?string=${encodeURIComponent(query)}`, {
-        headers: this.headers
+      const response = await axios.get(`https://allegro.pl/api/v1/offers?phrase=${encodeURIComponent(query)}&sort=relevance`, {
+        headers: {
+          ...this.headers,
+          'Accept': 'application/vnd.allegro.public.v1+json',
+          'Referer': 'https://allegro.pl/',
+          'Origin': 'https://allegro.pl'
+        }
       });
 
-      const html = response.data;
-      const products: InsertProduct[] = [];
-      const matches = html.match(/<article[^>]*class="[^"]*_9c44d_3pyzl"[^>]*>[\s\S]*?<\/article>/g);
+      log('Allegro API response received');
 
-      if (matches) {
-        matches.forEach((match: string) => {
-          const titleMatch = match.match(/<h2[^>]*>([^<]+)<\/h2>/);
-          const priceMatch = match.match(/data-price="([^"]+)"/);
-          const imageMatch = match.match(/img[^>]+src="([^"]+)"/);
-          const linkMatch = match.match(/href="([^"]+)"/);
-
-          if (titleMatch && priceMatch) {
-            const title = titleMatch[1].trim();
-            const numericPrice = parseFloat(priceMatch[1]) || 0;
-            const image = imageMatch ? imageMatch[1] : '';
-            const link = linkMatch ? linkMatch[1] : '';
-
-            products.push({
-              title,
-              description: title,
-              price: numericPrice,
-              image,
-              marketplace: 'allegro',
-              originalUrl: link,
-              latitude: 52.2297,
-              longitude: 21.0122
-            });
-          }
-        });
+      if (response.data && response.data.items) {
+        return response.data.items.map((item: any) => ({
+          title: item.name,
+          description: item.name,
+          price: parseFloat(item.sellingMode.price.amount),
+          image: item.images?.[0]?.url || '',
+          marketplace: 'allegro',
+          originalUrl: item.url,
+          latitude: 52.2297,
+          longitude: 21.0122
+        }));
       }
 
-      log(`Found ${products.length} products from Allegro`);
-      return products;
+      return [];
     } catch (error) {
       log(`Error fetching from Allegro: ${error}`);
       return [];
