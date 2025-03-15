@@ -4,6 +4,8 @@ import { apiRequest } from "@/lib/queryClient";
 import type { SearchParams, Product } from "@shared/schema";
 import { SearchFilters } from "@/components/search-filters";
 import { ProductGrid } from "@/components/product-grid";
+import { Alert, AlertDescription } from "@/components/ui/alert";
+import { AlertCircle } from "lucide-react";
 
 export default function Home() {
   const [searchParams, setSearchParams] = useState<SearchParams>({
@@ -13,7 +15,7 @@ export default function Home() {
     maxPrice: undefined
   });
 
-  const { data: products, isLoading } = useQuery<Product[]>({
+  const { data: products, isLoading, error } = useQuery<Product[]>({
     queryKey: ["/api/products/search", searchParams],
     queryFn: async () => {
       console.log('Searching with params:', searchParams); // Debug log
@@ -43,6 +45,15 @@ export default function Home() {
 
       <main className="container mx-auto px-4 py-8">
         <div className="max-w-2xl mx-auto">
+          {error?.message?.includes('verification pending') && (
+            <Alert variant="destructive" className="mb-4">
+              <AlertCircle className="h-4 w-4" />
+              <AlertDescription>
+                Aplikacja jest w trakcie weryfikacji przez Allegro. Proszę dokończyć proces weryfikacji w panelu developera Allegro.
+              </AlertDescription>
+            </Alert>
+          )}
+
           <SearchFilters
             onSearch={handleSearch}
             defaultValues={searchParams}

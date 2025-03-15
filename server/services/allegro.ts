@@ -95,6 +95,10 @@ export class AllegroAPI {
       }));
     } catch (error) {
       if (axios.isAxiosError(error) && error.response) {
+        if (error.response.status === 403 && error.response.data?.errors?.[0]?.code === 'VerificationRequired') {
+          log('Application verification is pending. Please complete the verification process in the Allegro Developer Portal.');
+          throw new Error('Application verification pending');
+        }
         log(`Failed to search Allegro products: ${error.response.status} - ${JSON.stringify(error.response.data)}`);
       } else {
         log(`Failed to search Allegro products: ${error}`);
