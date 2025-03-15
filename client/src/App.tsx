@@ -38,13 +38,7 @@ function App() {
     <QueryClientProvider client={queryClient}>
       <Navigation />
       <Router />
-      <Toaster 
-        position="bottom-left"
-        toastOptions={{
-          duration: 5000,
-          className: "shadow-lg"
-        }}
-      />
+      <Toaster className="bottom-4 left-4" />
     </QueryClientProvider>
   );
 }
