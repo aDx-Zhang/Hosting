@@ -8,19 +8,20 @@ import { ProductGrid } from "@/components/product-grid";
 export default function Home() {
   const [searchParams, setSearchParams] = useState<SearchParams>({
     query: "",
-    lat: 52.2297, // Default to Warsaw coordinates
-    lng: 21.0122,
-    radius: 10,
-    marketplace: "all"
+    marketplace: "all",
+    minPrice: undefined,
+    maxPrice: undefined
   });
 
   const { data: products, isLoading } = useQuery<Product[]>({
     queryKey: ["/api/products/search", searchParams],
     queryFn: async () => {
-      const res = await apiRequest("POST", "/api/products/search", searchParams);
+      const res = await apiRequest("POST", "/api/products/search", {
+        ...searchParams,
+        query: searchParams.query || "" // Allow empty query to show all products
+      });
       return res.json();
-    },
-    enabled: searchParams.query.length > 0
+    }
   });
 
   const handleSearch = (params: SearchParams) => {

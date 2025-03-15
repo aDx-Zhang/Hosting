@@ -20,11 +20,16 @@ export class MemStorage implements IStorage {
   async searchProducts(params: SearchParams): Promise<Product[]> {
     const products = Array.from(this.products.values());
 
+    // If no query, return all products with filters
     return products.filter(product => {
       // Text search
-      if (!product.title.toLowerCase().includes(params.query.toLowerCase()) &&
-          !product.description.toLowerCase().includes(params.query.toLowerCase())) {
-        return false;
+      if (params.query) {
+        const searchQuery = params.query.toLowerCase();
+        const titleMatch = product.title.toLowerCase().includes(searchQuery);
+        const descriptionMatch = product.description.toLowerCase().includes(searchQuery);
+        if (!titleMatch && !descriptionMatch) {
+          return false;
+        }
       }
 
       // Marketplace filter

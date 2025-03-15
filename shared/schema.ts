@@ -29,11 +29,10 @@ export type InsertProduct = z.infer<typeof insertProductSchema>;
 export type Product = typeof products.$inferSelect;
 
 export const searchParamsSchema = z.object({
-  query: z.string().min(1),
+  query: z.string(), // Allow empty string
   marketplace: z.enum(['all', 'olx', 'vinted', 'allegro']).optional(),
   minPrice: z.number().optional(),
   maxPrice: z.number().optional(),
-  // Keep these but make them optional since we're not using the map for now
   lat: z.number().optional(),
   lng: z.number().optional(),
   radius: z.number().optional(),
