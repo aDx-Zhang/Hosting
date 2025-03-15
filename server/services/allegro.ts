@@ -1,5 +1,5 @@
 import axios from 'axios';
-import { log } from '../vite';
+import { log } from "../vite";
 
 interface AllegroToken {
   access_token: string;
@@ -30,7 +30,7 @@ export class AllegroAPI {
 
       const response = await axios.post<AllegroToken>(
         'https://allegro.pl/auth/oauth/token',
-        'grant_type=client_credentials&scope=allegro.api.offers.read allegro.api.billing.read allegro.api.profile.read',
+        'grant_type=client_credentials&scope=allegro:api:sale:offers:read allegro:api:sale:settings:read allegro:api:profile:read',
         {
           headers: {
             'Authorization': `Basic ${auth}`,
