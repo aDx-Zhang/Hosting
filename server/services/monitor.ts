@@ -14,6 +14,7 @@ class MonitoringService {
 
   startMonitoring(params: SearchParams) {
     const monitorId = this.generateMonitorId(params);
+    log(`Starting monitor with params: ${JSON.stringify(params)}`);
 
     if (this.monitoringIntervals.has(monitorId)) {
       log(`Monitor ${monitorId} already exists`);
@@ -24,10 +25,17 @@ class MonitoringService {
 
     const interval = setInterval(async () => {
       try {
+        log(`Checking for new products with query: ${params.query}`);
         const results = await Promise.allSettled([
-          marketplaceService.searchOLX(params.query),
-          marketplaceService.searchAllegro(params.query),
-          marketplaceService.searchVinted(params.query)
+          params.marketplace === 'all' || params.marketplace === 'olx' 
+            ? marketplaceService.searchOLX(params.query)
+            : Promise.resolve([]),
+          params.marketplace === 'all' || params.marketplace === 'allegro' 
+            ? marketplaceService.searchAllegro(params.query)
+            : Promise.resolve([]),
+          params.marketplace === 'all' || params.marketplace === 'vinted' 
+            ? marketplaceService.searchVinted(params.query)
+            : Promise.resolve([])
         ]);
 
         const newProducts: Product[] = [];
@@ -37,11 +45,8 @@ class MonitoringService {
           if (result.status === 'fulfilled') {
             result.value.forEach((product) => {
               // Apply price filters
-              if (params.minPrice && product.price < params.minPrice) return;
-              if (params.maxPrice && product.price > params.maxPrice) return;
-
-              // Apply marketplace filter
-              if (params.marketplace && params.marketplace !== 'all' && product.marketplace !== params.marketplace) return;
+              if (params.minPrice !== undefined && product.price < params.minPrice) return;
+              if (params.maxPrice !== undefined && product.price > params.maxPrice) return;
 
               const productKey = `${product.marketplace}_${product.originalUrl}`;
 
@@ -49,6 +54,7 @@ class MonitoringService {
                 seenSet.add(productKey);
                 const productWithId = { ...product, id: this.currentId++ };
                 newProducts.push(productWithId);
+                log(`Found new product: ${productWithId.title} for monitor ${monitorId}`);
               }
             });
           }
@@ -68,7 +74,7 @@ class MonitoringService {
     }, 30000); // Check every 30 seconds
 
     this.monitoringIntervals.set(monitorId, interval);
-    log(`Started monitor ${monitorId}`);
+    log(`Started monitor ${monitorId} with params: ${JSON.stringify(params)}`);
     return monitorId;
   }
 
