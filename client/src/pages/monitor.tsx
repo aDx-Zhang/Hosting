@@ -15,6 +15,24 @@ interface Monitor {
   products: Product[];
 }
 
+function getMonitorTitle(params: SearchParams): string {
+  const parts = [];
+
+  if (params.query) {
+    parts.push(`"${params.query}"`);
+  }
+
+  if (params.marketplace && params.marketplace !== 'all') {
+    parts.push(`on ${params.marketplace.toUpperCase()}`);
+  }
+
+  if (parts.length === 0) {
+    return "All items on all marketplaces";
+  }
+
+  return parts.join(' ');
+}
+
 export default function Monitor() {
   const [monitors, setMonitors] = useState<Monitor[]>([]);
   const [searchParams, setSearchParams] = useState<SearchParams>({
@@ -117,11 +135,10 @@ export default function Monitor() {
                       <div className="flex items-center justify-between mb-4">
                         <div>
                           <h3 className="font-semibold">
-                            Monitoring: {monitor.params.query || "All Items"}
+                            Monitoring: {getMonitorTitle(monitor.params)}
                           </h3>
                           <p className="text-sm text-muted-foreground">
-                            Marketplace: {monitor.params.marketplace}
-                            {monitor.params.minPrice && ` | Min: ${monitor.params.minPrice} PLN`}
+                            {monitor.params.minPrice && `Min: ${monitor.params.minPrice} PLN`}
                             {monitor.params.maxPrice && ` | Max: ${monitor.params.maxPrice} PLN`}
                           </p>
                         </div>
