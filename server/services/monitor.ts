@@ -8,19 +8,8 @@ export class MonitoringService {
   private seenProducts: Map<string, Set<string>> = new Map();
   private currentId: number = 1;
 
-  private generateMonitorId(params: SearchParams): string {
-    const parts = [];
-
-    if (params.query) parts.push(params.query);
-    if (params.marketplace && params.marketplace !== 'all') parts.push(params.marketplace);
-    if (params.minPrice !== undefined) parts.push(`min${params.minPrice}`);
-    if (params.maxPrice !== undefined) parts.push(`max${params.maxPrice}`);
-
-    return parts.length > 0 ? parts.join('_') : 'all';
-  }
-
   startMonitoring(params: SearchParams) {
-    const monitorId = this.generateMonitorId(params);
+    const monitorId = `${params.query || 'all'}_${Date.now()}`;
     log(`Starting monitor with params: ${JSON.stringify(params)}`);
 
     if (this.monitoringIntervals.has(monitorId)) {
@@ -34,15 +23,9 @@ export class MonitoringService {
       try {
         log(`Checking for new products with query: ${params.query}`);
         const results = await Promise.allSettled([
-          params.marketplace === 'all' || params.marketplace === 'olx' 
-            ? marketplaceService.searchOLX(params.query || '')
-            : Promise.resolve([]),
-          params.marketplace === 'all' || params.marketplace === 'allegro' 
-            ? marketplaceService.searchAllegro(params.query || '')
-            : Promise.resolve([]),
-          params.marketplace === 'all' || params.marketplace === 'vinted' 
-            ? marketplaceService.searchVinted(params.query || '')
-            : Promise.resolve([])
+          marketplaceService.searchOLX(params.query || ''),
+          marketplaceService.searchAllegro(params.query || ''),
+          marketplaceService.searchVinted(params.query || '')
         ]);
 
         const newProducts: Product[] = [];
@@ -50,14 +33,19 @@ export class MonitoringService {
 
         results.forEach((result) => {
           if (result.status === 'fulfilled') {
-            result.value.forEach((product) => {
-              // Apply price filters if they exist
+            result.value.forEach(product => {
+              // Apply filters
               if (params.minPrice !== undefined && product.price < params.minPrice) {
                 log(`Skipping product ${product.title} due to price < ${params.minPrice}`);
                 return;
               }
               if (params.maxPrice !== undefined && product.price > params.maxPrice) {
                 log(`Skipping product ${product.title} due to price > ${params.maxPrice}`);
+                return;
+              }
+
+              if (params.marketplace && params.marketplace !== 'all' && product.marketplace !== params.marketplace) {
+                log(`Skipping product ${product.title} due to marketplace mismatch`);
                 return;
               }
 
@@ -92,7 +80,7 @@ export class MonitoringService {
   }
 
   stopMonitoring(params: SearchParams) {
-    const monitorId = this.generateMonitorId(params);
+    const monitorId = `${params.query || 'all'}_${Date.now()}`;
     const interval = this.monitoringIntervals.get(monitorId);
 
     if (interval) {

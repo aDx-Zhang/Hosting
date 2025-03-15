@@ -15,31 +15,6 @@ interface Monitor {
   products: Product[];
 }
 
-function getMonitorTitle(params: SearchParams): string {
-  const parts = [];
-
-  if (params.query) {
-    parts.push(`"${params.query}"`);
-  }
-
-  if (params.minPrice !== undefined || params.maxPrice !== undefined) {
-    const priceRange = [];
-    if (params.minPrice !== undefined) priceRange.push(`${params.minPrice} PLN`);
-    if (params.maxPrice !== undefined) priceRange.push(`${params.maxPrice} PLN`);
-    parts.push(`Price: ${priceRange.join(' - ')}`);
-  }
-
-  if (params.marketplace && params.marketplace !== 'all') {
-    parts.push(`on ${params.marketplace.toUpperCase()}`);
-  }
-
-  if (parts.length === 0) {
-    return "All items on all marketplaces";
-  }
-
-  return parts.join(' ');
-}
-
 export default function Monitor() {
   const [monitors, setMonitors] = useState<Monitor[]>([]);
   const [searchParams, setSearchParams] = useState<SearchParams>({
@@ -49,31 +24,17 @@ export default function Monitor() {
   const { toast } = useToast();
 
   const handleSearch = async (params: SearchParams) => {
-    const updatedParams = {
-      ...params,
-      query: params.query || "",
-      marketplace: params.marketplace || "all",
-      minPrice: params.minPrice ? Number(params.minPrice) : undefined,
-      maxPrice: params.maxPrice ? Number(params.maxPrice) : undefined
-    };
-    setSearchParams(updatedParams);
+    setSearchParams(params);
   };
 
   const startNewMonitor = async () => {
     try {
-      // Ensure we're using the properly formatted search params
-      const monitorParams = {
-        ...searchParams,
-        minPrice: searchParams.minPrice ? Number(searchParams.minPrice) : undefined,
-        maxPrice: searchParams.maxPrice ? Number(searchParams.maxPrice) : undefined
-      };
-
-      const res = await apiRequest("POST", "/api/monitor/start", monitorParams);
+      const res = await apiRequest("POST", "/api/monitor/start", searchParams);
       const data = await res.json();
 
       setMonitors(prev => [...prev, {
         id: data.monitorId,
-        params: monitorParams,
+        params: searchParams,
         products: []
       }]);
 
@@ -152,7 +113,8 @@ export default function Monitor() {
                       <div className="flex items-center justify-between mb-4">
                         <div>
                           <h3 className="font-semibold">
-                            Monitoring: {getMonitorTitle(monitor.params)}
+                            Monitoring: {monitor.params.query || "All items"} 
+                            {monitor.params.marketplace !== 'all' && ` on ${monitor.params.marketplace.toUpperCase()}`}
                           </h3>
                           <p className="text-sm text-muted-foreground">
                             {monitor.params.minPrice && `Min: ${monitor.params.minPrice} PLN`}
@@ -196,7 +158,7 @@ export default function Monitor() {
                 />
 
                 <div className="mt-4">
-                  <Button
+                  <Button 
                     onClick={startNewMonitor}
                     className="w-full bg-green-600 hover:bg-green-700"
                   >
