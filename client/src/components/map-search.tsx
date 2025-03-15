@@ -55,7 +55,7 @@ export function MapSearch({ onLocationSelect, radius }: MapSearchProps) {
     if (mapContainer.current && !map.current) {
       map.current = new maplibregl.Map({
         container: mapContainer.current,
-        style: `https://api.maptiler.com/maps/streets/style.json?key=${import.meta.env.MAPTILER_KEY}`,
+        style: `https://api.maptiler.com/maps/streets/style.json?key=${import.meta.env.VITE_MAPTILER_KEY}`,
         center: [21.0122, 52.2297], // Warsaw coordinates
         zoom: 11
       });
