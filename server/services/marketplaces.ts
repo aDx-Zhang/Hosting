@@ -5,11 +5,10 @@ import type { InsertProduct } from "@shared/schema";
 export class MarketplaceService {
   private readonly headers = {
     'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/121.0.0.0 Safari/537.36',
-    'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8',
+    'Accept': 'application/json, text/plain, */*',
     'Accept-Language': 'pl-PL,pl;q=0.9,en-US;q=0.8,en;q=0.7',
     'Accept-Encoding': 'gzip, deflate, br',
-    'Connection': 'keep-alive',
-    'Cache-Control': 'max-age=0'
+    'Connection': 'keep-alive'
   };
 
   private getDefaultImage(): string {
@@ -66,80 +65,33 @@ export class MarketplaceService {
     }
   }
 
-  async searchAllegro(query: string): Promise<InsertProduct[]> {
-    try {
-      log(`Searching Allegro for: ${query}`);
-      const response = await axios.get(`https://m.allegro.pl/api/v1/listings`, {
-        params: {
-          phrase: query,
-          city: 'Warszawa', // Add city parameter for local listings
-          sort: '+distanceCity',
-          limit: 40,
-          include: '-filters,-categories',
-          source: 'ALLEGRO_LOKALNIE' // This parameter ensures we get local listings
-        },
-        headers: {
-          ...this.headers,
-          'Accept': 'application/vnd.allegro.public.v1+json',
-          'Referer': 'https://m.allegro.pl/lokalnie',
-          'Origin': 'https://m.allegro.pl',
-          'Platform': 'mobile'
-        }
-      });
-
-      log('Allegro API response received');
-
-      if (response.data && response.data.items) {
-        return response.data.items.map((item: any) => {
-          let imageUrl = this.getDefaultImage();
-          if (item.images && item.images.length > 0) {
-            imageUrl = item.images[0].url;
-          }
-
-          return {
-            title: item.title,
-            description: item.description || item.title,
-            price: parseFloat(item.price?.amount || '0'),
-            image: imageUrl,
-            marketplace: 'allegro',
-            originalUrl: `https://allegro.pl/oferta/${item.id}`,
-            latitude: item.location?.coordinates?.lat || 52.2297,
-            longitude: item.location?.coordinates?.lon || 21.0122
-          };
-        });
-      }
-
-      return [];
-    } catch (error) {
-      log(`Error fetching from Allegro: ${error}`);
-      return [];
-    }
-  }
-
   async searchVinted(query: string): Promise<InsertProduct[]> {
     try {
       log(`Searching Vinted for: ${query}`);
-      const response = await axios.get(`https://www.vinted.pl/catalog/items`, {
+      const response = await axios.get(`https://www.vinted.pl/api/v2/catalog/items`, {
         params: {
           search_text: query,
-          per_page: 40,
-          catalog_ids: '', // Empty to search all categories
+          per_page: 24,
+          order: 'newest_first',
+          currency: 'PLN',
+          localization: 'pl',
+          catalog_ids: '',
           color_ids: '',
           brand_ids: '',
           size_ids: '',
           material_ids: '',
           status_ids: '',
-          country_ids: 'PL',
-          city_ids: '',
+          country_id: 'PL',
           is_for_swap: '0',
           page: 1
         },
         headers: {
           ...this.headers,
-          'Accept': 'application/json',
-          'Referer': 'https://www.vinted.pl/',
+          'Accept': 'application/json, text/plain, */*',
+          'Referer': 'https://www.vinted.pl/catalog',
           'Origin': 'https://www.vinted.pl',
-          'X-Requested-With': 'XMLHttpRequest'
+          'x-app-version': '2024.6.0',
+          'cookie': 'ab_test_variant=new_home_feed; secure_user_id=1; _vinted_fr_session=1'
         }
       });
 
@@ -153,7 +105,7 @@ export class MarketplaceService {
             price: parseFloat(item.price || '0'),
             image: item.photos?.[0]?.url || this.getDefaultImage(),
             marketplace: 'vinted',
-            originalUrl: item.url,
+            originalUrl: item.url || `https://www.vinted.pl/items/${item.id}`,
             latitude: 52.2297,
             longitude: 21.0122
           };
@@ -165,6 +117,10 @@ export class MarketplaceService {
       log(`Error fetching from Vinted: ${error}`);
       return [];
     }
+  }
+
+  async searchAllegro(query: string): Promise<InsertProduct[]> {
+    return [];
   }
 }
 
