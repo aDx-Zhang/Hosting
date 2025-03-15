@@ -17,7 +17,6 @@ export class MarketplaceService {
   }
 
   private fixImageUrl(url: string): string {
-    // Replace dynamic size parameters with fixed values
     return url.replace('{width}x{height}', '400x300');
   }
 
@@ -37,13 +36,11 @@ export class MarketplaceService {
 
       if (response.data && response.data.data) {
         return response.data.data.map((item: any) => {
-          // Get the first photo URL or default image
           let photoUrl = this.getDefaultImage();
           if (item.photos && item.photos.length > 0) {
             photoUrl = this.fixImageUrl(item.photos[0].link);
           }
 
-          // Get price from params
           const priceParam = item.params?.find((p: any) => p.key === 'price');
           const price = priceParam?.value?.value 
             ? parseFloat(priceParam.value.value) 
@@ -72,32 +69,36 @@ export class MarketplaceService {
   async searchAllegro(query: string): Promise<InsertProduct[]> {
     try {
       log(`Searching Allegro for: ${query}`);
-      const response = await axios.get(`https://allegro.pl/listing/listing?string=${encodeURIComponent(query)}`, {
+      const response = await axios.get(`https://m.allegro.pl/api/v1/listings?phrase=${encodeURIComponent(query)}&sort=relevance&limit=40`, {
         headers: {
           ...this.headers,
           'Accept': 'application/vnd.allegro.public.v1+json',
-          'Referer': 'https://allegro.pl/',
-          'Origin': 'https://allegro.pl'
+          'Referer': 'https://m.allegro.pl/',
+          'Origin': 'https://m.allegro.pl',
+          'Platform': 'mobile'
         }
       });
 
       log('Allegro API response received');
 
-      if (response.data && response.data.items) {
-        return response.data.items.map((item: any) => {
-          // Get the first image URL or default image
+      if (response.data && response.data.regularListings) {
+        return response.data.regularListings.elements.map((item: any) => {
           let imageUrl = this.getDefaultImage();
-          if (item.images && item.images.length > 0) {
-            imageUrl = item.images[0].url;
+          if (item.photo && item.photo.url) {
+            imageUrl = item.photo.url;
           }
 
+          const price = item.price?.amount 
+            ? parseFloat(item.price.amount) 
+            : 0;
+
           return {
-            title: item.name,
-            description: item.name,
-            price: parseFloat(item.sellingMode?.price?.amount || '0'),
+            title: item.title,
+            description: item.title,
+            price,
             image: imageUrl,
             marketplace: 'allegro',
-            originalUrl: item.url || `https://allegro.pl/oferta/${item.id}`,
+            originalUrl: `https://allegro.pl/oferta/${item.id}`,
             latitude: 52.2297,
             longitude: 21.0122
           };
