@@ -27,6 +27,8 @@ export class MemStorage implements IStorage {
 
       // Combine with local products (if any)
       const localProducts = Array.from(this.products.values());
+      log(`Found ${localProducts.length} products from local storage`);
+
       const allProducts = [...allegroProducts, ...localProducts];
 
       return allProducts.filter(product => {
@@ -45,7 +47,7 @@ export class MemStorage implements IStorage {
       });
     } catch (error) {
       log(`Error searching products: ${error}`);
-      return [];
+      throw error;
     }
   }
 

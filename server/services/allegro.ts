@@ -13,7 +13,6 @@ export class AllegroAPI {
   private tokenExpiry: Date | null = null;
   private readonly clientId: string;
   private readonly clientSecret: string;
-  private readonly baseUrl = 'https://api.allegro.pl';
   private readonly sandboxBaseUrl = 'https://api.allegro.pl.allegrosandbox.pl';
 
   constructor() {
@@ -34,7 +33,7 @@ export class AllegroAPI {
     try {
       const auth = Buffer.from(`${this.clientId}:${this.clientSecret}`).toString('base64');
       const response = await axios.post<AllegroToken>(
-        'https://allegro.pl/auth/oauth/token',
+        'https://oauth.allegro.pl.allegrosandbox.pl/auth/oauth/token',
         'grant_type=client_credentials',
         {
           headers: {
@@ -46,6 +45,8 @@ export class AllegroAPI {
 
       this.accessToken = response.data.access_token;
       this.tokenExpiry = new Date(Date.now() + (response.data.expires_in * 1000));
+
+      log('Successfully obtained Allegro access token');
       return this.accessToken;
     } catch (error) {
       log(`Failed to get Allegro access token: ${error}`);
@@ -56,29 +57,33 @@ export class AllegroAPI {
   async searchProducts(query: string): Promise<any[]> {
     try {
       const token = await this.getAccessToken();
-      const response = await axios.get(`${this.baseUrl}/offers/listing`, {
+      log(`Searching Allegro with query: ${query}`);
+
+      const response = await axios.get(`${this.sandboxBaseUrl}/sale/offers`, {
         headers: {
           'Authorization': `Bearer ${token}`,
           'Accept': 'application/vnd.allegro.public.v1+json',
         },
         params: {
-          phrase: query,
+          phrase: query || '',
           limit: 20,
         },
       });
 
-      return response.data.items.promoted.concat(response.data.items.regular)
-        .map((item: any) => ({
-          id: item.id,
-          title: item.name,
-          description: item.description || '',
-          price: parseFloat(item.sellingMode.price.amount),
-          image: item.images[0]?.url || '',
-          marketplace: 'allegro',
-          originalUrl: item.url,
-          latitude: item.location?.lat || null,
-          longitude: item.location?.lon || null,
-        }));
+      log(`Allegro API responded with ${response.data.items?.length || 0} items`);
+
+      const items = response.data.items || [];
+      return items.map((item: any) => ({
+        id: item.id,
+        title: item.name,
+        description: item.description || '',
+        price: parseFloat(item.sellingMode.price.amount),
+        image: item.images?.[0]?.url || '',
+        marketplace: 'allegro',
+        originalUrl: item.id, // In sandbox we don't have real URLs
+        latitude: item.location?.lat || 52.2297,
+        longitude: item.location?.lon || 21.0122,
+      }));
     } catch (error) {
       log(`Failed to search Allegro products: ${error}`);
       return [];
