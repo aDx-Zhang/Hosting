@@ -42,8 +42,10 @@ export default function Monitor() {
       }]);
 
       toast({
-        title: "Monitor Started",
+        title: "Monitor Created Successfully!",
         description: "You will receive notifications when new items are found.",
+        variant: "success",
+        duration: 3000,
       });
     } catch (error) {
       toast({
@@ -64,6 +66,7 @@ export default function Monitor() {
         toast({
           title: "Monitor Stopped",
           description: "You will no longer receive notifications for this search.",
+          variant: "default",
         });
       }
     } catch (error) {
@@ -110,7 +113,7 @@ export default function Monitor() {
           <div className="mt-4">
             <Button 
               onClick={startNewMonitor}
-              className="w-full"
+              className="w-full bg-green-600 hover:bg-green-700"
             >
               Start New Monitor
             </Button>
