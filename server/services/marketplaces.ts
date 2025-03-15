@@ -69,7 +69,7 @@ export class MarketplaceService {
   async searchAllegro(query: string): Promise<InsertProduct[]> {
     try {
       log(`Searching Allegro for: ${query}`);
-      const response = await axios.get(`https://m.allegro.pl/api/v1/listings?phrase=${encodeURIComponent(query)}&sort=relevance&limit=40`, {
+      const response = await axios.get(`https://m.allegro.pl/api/v1/listings?phrase=${encodeURIComponent(query)}&sort=relevance&limit=40&offerTypeBuyNow=1&startingTime=P30D&itemsPerPage=40&searchMode=DESCRIPTIONS&include=-filters,-categories&string=${encodeURIComponent(query)}&stan=używane`, {
         headers: {
           ...this.headers,
           'Accept': 'application/vnd.allegro.public.v1+json',
@@ -81,21 +81,17 @@ export class MarketplaceService {
 
       log('Allegro API response received');
 
-      if (response.data && response.data.regularListings) {
-        return response.data.regularListings.elements.map((item: any) => {
+      if (response.data && response.data.items) {
+        return response.data.items.map((item: any) => {
           let imageUrl = this.getDefaultImage();
-          if (item.photo && item.photo.url) {
-            imageUrl = item.photo.url;
+          if (item.images && item.images.length > 0) {
+            imageUrl = item.images[0].url;
           }
-
-          const price = item.price?.amount 
-            ? parseFloat(item.price.amount) 
-            : 0;
 
           return {
             title: item.title,
-            description: item.title,
-            price,
+            description: item.description || item.title,
+            price: parseFloat(item.price?.amount || '0'),
             image: imageUrl,
             marketplace: 'allegro',
             originalUrl: `https://allegro.pl/oferta/${item.id}`,
@@ -108,6 +104,42 @@ export class MarketplaceService {
       return [];
     } catch (error) {
       log(`Error fetching from Allegro: ${error}`);
+      return [];
+    }
+  }
+
+  async searchVinted(query: string): Promise<InsertProduct[]> {
+    try {
+      log(`Searching Vinted for: ${query}`);
+      const response = await axios.get(`https://www.vinted.pl/api/v2/catalog/items?search_text=${encodeURIComponent(query)}&per_page=40`, {
+        headers: {
+          ...this.headers,
+          'Accept': 'application/json',
+          'Referer': 'https://www.vinted.pl/',
+          'Origin': 'https://www.vinted.pl'
+        }
+      });
+
+      log('Vinted API response received');
+
+      if (response.data && response.data.items) {
+        return response.data.items.map((item: any) => {
+          return {
+            title: item.title,
+            description: item.description || item.title,
+            price: parseFloat(item.price || '0'),
+            image: item.photos?.[0]?.url || this.getDefaultImage(),
+            marketplace: 'vinted',
+            originalUrl: item.url,
+            latitude: 52.2297,
+            longitude: 21.0122
+          };
+        });
+      }
+
+      return [];
+    } catch (error) {
+      log(`Error fetching from Vinted: ${error}`);
       return [];
     }
   }
