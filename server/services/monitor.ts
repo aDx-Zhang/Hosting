@@ -1,24 +1,22 @@
 import { SearchParams, Product } from "@shared/schema";
 import { marketplaceService } from "./marketplaces";
 import { broadcastUpdate } from "../routes";
+import { storage } from "../storage";
 import { log } from "../vite";
 
 class MonitoringService {
   private monitoringIntervals: Map<string, NodeJS.Timeout> = new Map();
-  private seenProducts: Map<string, Set<string>> = new Map();
-  private currentId: number = 1;
 
   async startMonitoring(params: SearchParams) {
     try {
-      const monitorId = `monitor_${Date.now()}`;
-      log(`Starting monitor with params: ${JSON.stringify(params)}`);
+      // Create monitor in database
+      const { id: monitorId } = await storage.createMonitor(params);
+      const intervalId = monitorId.toString();
 
-      if (this.monitoringIntervals.has(monitorId)) {
-        log(`Monitor ${monitorId} already exists`);
-        return { monitorId };
+      if (this.monitoringIntervals.has(intervalId)) {
+        log(`Monitor ${intervalId} already exists`);
+        return { monitorId: intervalId };
       }
-
-      this.seenProducts.set(monitorId, new Set());
 
       const interval = setInterval(async () => {
         try {
@@ -29,12 +27,9 @@ class MonitoringService {
             marketplaceService.searchVinted(params.query || '')
           ]);
 
-          const newProducts: Product[] = [];
-          const seenSet = this.seenProducts.get(monitorId)!;
-
           results.forEach((result) => {
             if (result.status === 'fulfilled') {
-              result.value.forEach(product => {
+              result.value.forEach(async (product) => {
                 // Skip if product doesn't match price range
                 if (params.minPrice !== undefined && product.price < params.minPrice) {
                   log(`Skipping product ${product.title} (price ${product.price} < min ${params.minPrice})`);
@@ -51,53 +46,44 @@ class MonitoringService {
                   return;
                 }
 
-                const productKey = `${product.marketplace}_${product.originalUrl}`;
-                if (!seenSet.has(productKey)) {
-                  seenSet.add(productKey);
-                  const productWithId = { ...product, id: this.currentId++ };
-                  newProducts.push(productWithId);
-                  log(`Found new product: ${productWithId.title} for monitor ${monitorId}`);
-                }
+                // Store product in database and associate with monitor
+                await storage.addProductToMonitor(monitorId, product);
+                log(`Found new product: ${product.title} for monitor ${monitorId}`);
               });
             }
           });
-
-          if (newProducts.length > 0) {
-            log(`Found ${newProducts.length} new products for monitor ${monitorId}`);
-            broadcastUpdate({
-              type: 'new_monitored_products',
-              products: newProducts,
-              monitorId
-            });
-          }
         } catch (error) {
           log(`Error in monitor ${monitorId}: ${error}`);
         }
       }, 30000); // Check every 30 seconds
 
-      this.monitoringIntervals.set(monitorId, interval);
-      log(`Started monitor ${monitorId} with params: ${JSON.stringify(params)}`);
-      return { monitorId };
+      this.monitoringIntervals.set(intervalId, interval);
+      log(`Started monitor ${intervalId} with params: ${JSON.stringify(params)}`);
+      return { monitorId: intervalId };
     } catch (error) {
       log(`Error starting monitor: ${error}`);
       throw error;
     }
   }
 
-  stopMonitoring(monitorId: string) {
-    const interval = this.monitoringIntervals.get(monitorId);
-    if (interval) {
-      clearInterval(interval);
-      this.monitoringIntervals.delete(monitorId);
-      this.seenProducts.delete(monitorId);
-      log(`Stopped monitor ${monitorId}`);
+  async stopMonitoring(monitorId: string) {
+    try {
+      const interval = this.monitoringIntervals.get(monitorId);
+      if (interval) {
+        clearInterval(interval);
+        this.monitoringIntervals.delete(monitorId);
+        await storage.deactivateMonitor(parseInt(monitorId));
+        log(`Stopped monitor ${monitorId}`);
+      }
+    } catch (error) {
+      log(`Error stopping monitor: ${error}`);
+      throw error;
     }
   }
 
   stopAllMonitoring() {
     this.monitoringIntervals.forEach((interval) => clearInterval(interval));
     this.monitoringIntervals.clear();
-    this.seenProducts.clear();
     log('Stopped all monitors');
   }
 }

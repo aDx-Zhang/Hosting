@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { apiRequest } from "@/lib/queryClient";
 import { SearchParams, Product } from "@shared/schema";
 import { SearchFilters } from "@/components/search-filters";
@@ -50,23 +50,33 @@ export default function Monitor() {
   });
   const { toast } = useToast();
 
+  useEffect(() => {
+    // Load active monitors from database on component mount
+    const loadMonitors = async () => {
+      try {
+        const res = await apiRequest("GET", "/api/monitors");
+        const data = await res.json();
+        setMonitors(data.map((monitor: any) => ({
+          id: monitor.id.toString(),
+          params: monitor.params,
+          products: []
+        })));
+      } catch (error) {
+        console.error('Failed to load monitors:', error);
+      }
+    };
+
+    loadMonitors();
+  }, []);
+
   const startNewMonitor = async () => {
     try {
-      // Make sure we have the correct parameters
-      const monitorParams = {
-        ...searchParams,
-        query: searchParams.query || "",
-        marketplace: searchParams.marketplace || "all",
-        minPrice: searchParams.minPrice ? Number(searchParams.minPrice) : undefined,
-        maxPrice: searchParams.maxPrice ? Number(searchParams.maxPrice) : undefined
-      };
-
-      const res = await apiRequest("POST", "/api/monitor/start", monitorParams);
+      const res = await apiRequest("POST", "/api/monitor/start", searchParams);
       const data = await res.json();
 
       setMonitors(prev => [...prev, {
         id: data.monitorId,
-        params: monitorParams,
+        params: searchParams,
         products: []
       }]);
 

@@ -25,6 +25,16 @@ export function broadcastUpdate(data: unknown) {
 }
 
 export async function registerRoutes(app: Express) {
+  app.get("/api/monitors", async (req, res) => {
+    try {
+      const monitors = await storage.getActiveMonitors();
+      res.json(monitors);
+    } catch (error) {
+      log(`Error getting monitors: ${error}`);
+      res.status(500).json({ error: "Failed to get monitors" });
+    }
+  });
+
   app.post("/api/products/search", async (req, res) => {
     try {
       log(`Search params received: ${JSON.stringify(req.body)}`);
@@ -41,8 +51,8 @@ export async function registerRoutes(app: Express) {
   app.post("/api/monitor/start", async (req, res) => {
     try {
       const params = searchParamsSchema.parse(req.body);
-      monitoringService.startMonitoring(params);
-      res.json({ success: true, message: "Monitoring started" });
+      const result = await monitoringService.startMonitoring(params);
+      res.json(result);
     } catch (error) {
       log(`Monitor start error: ${error}`);
       res.status(400).json({ error: "Invalid monitor parameters" });
@@ -51,12 +61,12 @@ export async function registerRoutes(app: Express) {
 
   app.post("/api/monitor/stop", async (req, res) => {
     try {
-      const params = searchParamsSchema.parse(req.body);
-      monitoringService.stopMonitoring(params);
+      const { monitorId } = req.body;
+      await monitoringService.stopMonitoring(monitorId);
       res.json({ success: true, message: "Monitoring stopped" });
     } catch (error) {
       log(`Monitor stop error: ${error}`);
-      res.status(400).json({ error: "Invalid monitor parameters" });
+      res.status(400).json({ error: "Failed to stop monitor" });
     }
   });
 
