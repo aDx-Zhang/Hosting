@@ -18,6 +18,10 @@ class MonitoringService {
         return { monitorId: intervalId };
       }
 
+      // Use the custom update frequency or default to 30 seconds
+      const updateFrequency = (params.updateFrequency || 30) * 1000; // Convert to milliseconds
+      log(`Setting update frequency to ${updateFrequency}ms for monitor ${intervalId}`);
+
       const interval = setInterval(async () => {
         try {
           log(`Checking for new products with query: ${params.query}`);
@@ -55,7 +59,7 @@ class MonitoringService {
         } catch (error) {
           log(`Error in monitor ${monitorId}: ${error}`);
         }
-      }, 30000); // Check every 30 seconds
+      }, updateFrequency);
 
       this.monitoringIntervals.set(intervalId, interval);
       log(`Started monitor ${intervalId} with params: ${JSON.stringify(params)}`);

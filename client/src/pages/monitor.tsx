@@ -33,11 +33,15 @@ function formatMonitorTitle(params: SearchParams): string {
     parts.push(`on ${params.marketplace.toUpperCase()}`);
   }
 
-  if (parts.length === 0) {
-    return "All items on all marketplaces";
-  }
+  return parts.length > 0 ? parts.join(' ') : "All items on all marketplaces";
+}
 
-  return parts.join(' ');
+function formatUpdateFrequency(seconds: number): string {
+  if (seconds < 60) {
+    return `Updates every ${seconds} seconds`;
+  }
+  const minutes = Math.floor(seconds / 60);
+  return `Updates every ${minutes} minute${minutes > 1 ? 's' : ''}`;
 }
 
 export default function Monitor() {
@@ -46,12 +50,12 @@ export default function Monitor() {
     query: "",
     marketplace: "all",
     minPrice: undefined,
-    maxPrice: undefined
+    maxPrice: undefined,
+    updateFrequency: 30
   });
   const { toast } = useToast();
 
   useEffect(() => {
-    // Load active monitors from database on component mount
     const loadMonitors = async () => {
       try {
         const res = await apiRequest("GET", "/api/monitors");
@@ -154,6 +158,9 @@ export default function Monitor() {
                           <h3 className="font-semibold">
                             Monitoring: {formatMonitorTitle(monitor.params)}
                           </h3>
+                          <p className="text-sm text-muted-foreground">
+                            {formatUpdateFrequency(monitor.params.updateFrequency)}
+                          </p>
                           {(monitor.params.minPrice !== undefined || monitor.params.maxPrice !== undefined) && (
                             <p className="text-sm text-muted-foreground">
                               Price range: {monitor.params.minPrice || 0} - {monitor.params.maxPrice || '∞'} PLN
@@ -168,6 +175,7 @@ export default function Monitor() {
                           <X className="h-4 w-4" />
                         </Button>
                       </div>
+
                       <ProductGrid
                         products={monitor.products}
                         isLoading={false}
@@ -186,7 +194,7 @@ export default function Monitor() {
                 <Alert className="mb-6">
                   <AlertTriangle className="h-4 w-4" />
                   <AlertDescription>
-                    Set your search criteria and start monitoring. You can have multiple monitors running at the same time.
+                    Set your search criteria and update frequency, then start monitoring. You can have multiple monitors running at the same time.
                   </AlertDescription>
                 </Alert>
 
@@ -194,6 +202,7 @@ export default function Monitor() {
                   onSearch={setSearchParams}
                   defaultValues={searchParams}
                   hideSearchButton={true}
+                  showFrequencySlider={true}
                 />
 
                 <div className="mt-4">

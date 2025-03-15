@@ -20,6 +20,7 @@ export const monitors = pgTable("monitors", {
   params: jsonb("params").notNull().$type<SearchParams>(),
   lastCheckedAt: timestamp("last_checked_at"),
   active: integer("active").default(1),
+  updateFrequency: integer("update_frequency").default(30).notNull(), // in seconds
 });
 
 export const monitorProducts = pgTable("monitor_products", {
@@ -51,6 +52,7 @@ export const searchParamsSchema = z.object({
   lat: z.number().optional(),
   lng: z.number().optional(),
   radius: z.number().optional(),
+  updateFrequency: z.number().min(10).max(300).default(30), // 10 seconds to 5 minutes
 });
 
 export type SearchParams = z.infer<typeof searchParamsSchema>;

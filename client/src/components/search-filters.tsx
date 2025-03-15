@@ -7,9 +7,11 @@ import {
   FormField,
   FormItem,
   FormLabel,
+  FormDescription
 } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
+import { Slider } from "@/components/ui/slider";
 import {
   Select,
   SelectContent,
@@ -22,9 +24,15 @@ interface SearchFiltersProps {
   onSearch: (params: SearchParams) => void;
   defaultValues: SearchParams;
   hideSearchButton?: boolean;
+  showFrequencySlider?: boolean;
 }
 
-export function SearchFilters({ onSearch, defaultValues, hideSearchButton }: SearchFiltersProps) {
+export function SearchFilters({ 
+  onSearch, 
+  defaultValues, 
+  hideSearchButton,
+  showFrequencySlider = false 
+}: SearchFiltersProps) {
   const form = useForm<SearchParams>({
     resolver: zodResolver(searchParamsSchema),
     defaultValues,
@@ -113,6 +121,31 @@ export function SearchFilters({ onSearch, defaultValues, hideSearchButton }: Sea
             )}
           />
         </div>
+
+        {showFrequencySlider && (
+          <FormField
+            control={form.control}
+            name="updateFrequency"
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel>Update Frequency</FormLabel>
+                <FormControl>
+                  <Slider
+                    min={10}
+                    max={300}
+                    step={10}
+                    value={[field.value]}
+                    onValueChange={(value) => field.onChange(value[0])}
+                    className="w-full"
+                  />
+                </FormControl>
+                <FormDescription>
+                  {field.value} seconds between updates
+                </FormDescription>
+              </FormItem>
+            )}
+          />
+        )}
 
         {!hideSearchButton && (
           <Button type="submit" className="w-full">
