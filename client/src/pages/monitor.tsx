@@ -48,7 +48,7 @@ export default function Monitor() {
   const startNewMonitor = async () => {
     try {
       // Generate a unique ID for the monitor
-      const monitorId = `${searchParams.query}_${searchParams.marketplace}_${Date.now()}`;
+      const monitorId = `${searchParams.query || ''}_${searchParams.marketplace || 'all'}_${searchParams.minPrice || ''}_${searchParams.maxPrice || ''}`;
 
       // Start monitoring on the backend
       await apiRequest("POST", "/api/monitor/start", searchParams);

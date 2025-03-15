@@ -9,7 +9,7 @@ class MonitoringService {
   private currentId: number = 1;
 
   private generateMonitorId(params: SearchParams): string {
-    return `${params.query}_${params.marketplace}_${params.minPrice}_${params.maxPrice}`;
+    return `${params.query || ''}_${params.marketplace || 'all'}_${params.minPrice || ''}_${params.maxPrice || ''}`;
   }
 
   startMonitoring(params: SearchParams) {
@@ -17,7 +17,7 @@ class MonitoringService {
 
     if (this.monitoringIntervals.has(monitorId)) {
       log(`Monitor ${monitorId} already exists`);
-      return;
+      return monitorId;
     }
 
     this.seenProducts.set(monitorId, new Set());
@@ -36,11 +36,17 @@ class MonitoringService {
         results.forEach((result) => {
           if (result.status === 'fulfilled') {
             result.value.forEach((product) => {
+              // Apply price filters
+              if (params.minPrice && product.price < params.minPrice) return;
+              if (params.maxPrice && product.price > params.maxPrice) return;
+
+              // Apply marketplace filter
+              if (params.marketplace && params.marketplace !== 'all' && product.marketplace !== params.marketplace) return;
+
               const productKey = `${product.marketplace}_${product.originalUrl}`;
 
               if (!seenSet.has(productKey)) {
                 seenSet.add(productKey);
-                // Add ID to product before broadcasting
                 const productWithId = { ...product, id: this.currentId++ };
                 newProducts.push(productWithId);
               }
@@ -63,6 +69,7 @@ class MonitoringService {
 
     this.monitoringIntervals.set(monitorId, interval);
     log(`Started monitor ${monitorId}`);
+    return monitorId;
   }
 
   stopMonitoring(params: SearchParams) {
