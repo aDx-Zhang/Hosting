@@ -30,20 +30,12 @@ export function SearchFilters({ onSearch, defaultValues, hideSearchButton }: Sea
     defaultValues,
   });
 
-  const handleSubmit = (values: SearchParams) => {
-    const params = {
-      ...values,
-      minPrice: values.minPrice ? Number(values.minPrice) : undefined,
-      maxPrice: values.maxPrice ? Number(values.maxPrice) : undefined
-    };
-    onSearch(params);
-  };
-
   return (
     <Form {...form}>
       <form
-        onSubmit={form.handleSubmit(handleSubmit)}
+        onSubmit={form.handleSubmit(onSearch)}
         className="space-y-4 p-4 bg-white rounded-lg shadow-sm"
+        onChange={() => form.handleSubmit(onSearch)()}
       >
         <FormField
           control={form.control}

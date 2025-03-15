@@ -35,18 +35,19 @@ class MonitoringService {
           results.forEach((result) => {
             if (result.status === 'fulfilled') {
               result.value.forEach(product => {
-                // Apply filters
+                // Skip if product doesn't match price range
                 if (params.minPrice !== undefined && product.price < params.minPrice) {
-                  log(`Skipping product ${product.title} due to price < ${params.minPrice}`);
+                  log(`Skipping product ${product.title} (price ${product.price} < min ${params.minPrice})`);
                   return;
                 }
                 if (params.maxPrice !== undefined && product.price > params.maxPrice) {
-                  log(`Skipping product ${product.title} due to price > ${params.maxPrice}`);
+                  log(`Skipping product ${product.title} (price ${product.price} > max ${params.maxPrice})`);
                   return;
                 }
 
+                // Skip if product doesn't match marketplace
                 if (params.marketplace && params.marketplace !== 'all' && product.marketplace !== params.marketplace) {
-                  log(`Skipping product ${product.title} due to marketplace mismatch`);
+                  log(`Skipping product ${product.title} (marketplace ${product.marketplace} != ${params.marketplace})`);
                   return;
                 }
 
@@ -75,7 +76,7 @@ class MonitoringService {
       }, 30000); // Check every 30 seconds
 
       this.monitoringIntervals.set(monitorId, interval);
-      log(`Started monitor ${monitorId}`);
+      log(`Started monitor ${monitorId} with params: ${JSON.stringify(params)}`);
       return { monitorId };
     } catch (error) {
       log(`Error starting monitor: ${error}`);

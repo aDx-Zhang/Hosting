@@ -50,10 +50,6 @@ export default function Monitor() {
   });
   const { toast } = useToast();
 
-  const handleSearch = async (params: SearchParams) => {
-    setSearchParams(params);
-  };
-
   const startNewMonitor = async () => {
     try {
       // Make sure we have the correct parameters
@@ -185,7 +181,7 @@ export default function Monitor() {
                 </Alert>
 
                 <SearchFilters
-                  onSearch={handleSearch}
+                  onSearch={setSearchParams}
                   defaultValues={searchParams}
                   hideSearchButton={true}
                 />
