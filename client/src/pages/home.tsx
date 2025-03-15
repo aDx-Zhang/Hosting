@@ -54,6 +54,15 @@ export default function Home() {
             </Alert>
           )}
 
+          {error?.message?.includes('Failed to authenticate') && (
+            <Alert variant="destructive" className="mb-4">
+              <AlertCircle className="h-4 w-4" />
+              <AlertDescription>
+                Problem z autoryzacją Allegro. Upewnij się, że wszystkie wymagane uprawnienia są włączone w panelu developera.
+              </AlertDescription>
+            </Alert>
+          )}
+
           <SearchFilters
             onSearch={handleSearch}
             defaultValues={searchParams}

@@ -24,16 +24,13 @@ export class AllegroAPI {
   }
 
   private async getAccessToken(): Promise<string> {
-    // Return existing token if it's still valid
-    if (this.accessToken && this.tokenExpiry && this.tokenExpiry > new Date()) {
-      return this.accessToken;
-    }
-
     try {
       const auth = Buffer.from(`${this.clientId}:${this.clientSecret}`).toString('base64');
+      log('Attempting to get Allegro access token...');
+
       const response = await axios.post<AllegroToken>(
         'https://allegro.pl/auth/oauth/token',
-        'grant_type=client_credentials',
+        'grant_type=client_credentials&scope=allegro.api.offers.read allegro.api.billing.read allegro.api.profile.read',
         {
           headers: {
             'Authorization': `Basic ${auth}`,
@@ -46,9 +43,13 @@ export class AllegroAPI {
       this.tokenExpiry = new Date(Date.now() + (response.data.expires_in * 1000));
 
       log('Successfully obtained Allegro access token');
+      log(`Token scopes: ${response.data.scope}`);
       return this.accessToken;
     } catch (error) {
       if (axios.isAxiosError(error) && error.response) {
+        if (error.response.status === 403) {
+          log('Authorization failed. Please check if all required permissions are enabled.');
+        }
         log(`Failed to get Allegro access token: ${error.response.status} - ${JSON.stringify(error.response.data)}`);
       } else {
         log(`Failed to get Allegro access token: ${error}`);
