@@ -58,7 +58,8 @@ export default function Home() {
             <Alert variant="destructive" className="mb-4">
               <AlertCircle className="h-4 w-4" />
               <AlertDescription>
-                Problem z autoryzacją Allegro. Upewnij się, że wszystkie wymagane uprawnienia są włączone w panelu developera.
+                Problem z autoryzacją Allegro. Upewnij się, że wszystkie wymagane uprawnienia są włączone w panelu developera:
+                - allegro.api.offers.read
               </AlertDescription>
             </Alert>
           )}

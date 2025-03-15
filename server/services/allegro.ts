@@ -30,7 +30,7 @@ export class AllegroAPI {
 
       const response = await axios.post<AllegroToken>(
         'https://allegro.pl/auth/oauth/token',
-        'grant_type=client_credentials&scope=allegro:api:sale:offers:read allegro:api:sale:settings:read',
+        'grant_type=client_credentials&scope=allegro.api.offers.read',
         {
           headers: {
             'Authorization': `Basic ${auth}`,
@@ -63,7 +63,7 @@ export class AllegroAPI {
       const token = await this.getAccessToken();
       log(`Searching Allegro with query: ${query}`);
 
-      const response = await axios.get('https://api.allegro.pl/offers/listing', {
+      const response = await axios.get('https://api.allegro.pl/sale/offers', {
         headers: {
           'Authorization': `Bearer ${token}`,
           'Accept': 'application/vnd.allegro.public.v1+json',
@@ -77,13 +77,12 @@ export class AllegroAPI {
 
       log(`Allegro API response: ${JSON.stringify(response.data)}`);
 
-      // Process both promoted and regular items
-      const items = [
-        ...(response.data.items?.promoted || []),
-        ...(response.data.items?.regular || [])
-      ];
+      if (!response.data.offers) {
+        log('No offers found in the response');
+        return [];
+      }
 
-      return items.map((item: any) => ({
+      return response.data.offers.map((item: any) => ({
         id: item.id,
         title: item.name,
         description: item.description || '',
