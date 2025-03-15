@@ -15,11 +15,31 @@ interface Monitor {
   products: Product[];
 }
 
+function formatMonitorTitle(params: SearchParams): string {
+  const parts = [];
+
+  if (params.query) {
+    parts.push(`"${params.query}"`);
+  }
+
+  if (params.marketplace && params.marketplace !== 'all') {
+    parts.push(`on ${params.marketplace.toUpperCase()}`);
+  }
+
+  if (parts.length === 0) {
+    return "All items on all marketplaces";
+  }
+
+  return parts.join(' ');
+}
+
 export default function Monitor() {
   const [monitors, setMonitors] = useState<Monitor[]>([]);
   const [searchParams, setSearchParams] = useState<SearchParams>({
     query: "",
-    marketplace: "all"
+    marketplace: "all",
+    minPrice: undefined,
+    maxPrice: undefined
   });
   const { toast } = useToast();
 
@@ -55,17 +75,14 @@ export default function Monitor() {
 
   const stopMonitor = async (monitorId: string) => {
     try {
-      const monitor = monitors.find(m => m.id === monitorId);
-      if (monitor) {
-        await apiRequest("POST", "/api/monitor/stop", monitor.params);
-        setMonitors(prev => prev.filter(m => m.id !== monitorId));
+      await apiRequest("POST", "/api/monitor/stop", { monitorId });
+      setMonitors(prev => prev.filter(m => m.id !== monitorId));
 
-        toast({
-          title: "Monitor Stopped",
-          description: "You will no longer receive notifications for this search.",
-          variant: "default",
-        });
-      }
+      toast({
+        title: "Monitor Stopped",
+        description: "You will no longer receive notifications for this search.",
+        variant: "default",
+      });
     } catch (error) {
       toast({
         title: "Error",
@@ -113,8 +130,7 @@ export default function Monitor() {
                       <div className="flex items-center justify-between mb-4">
                         <div>
                           <h3 className="font-semibold">
-                            Monitoring: {monitor.params.query || "All items"} 
-                            {monitor.params.marketplace !== 'all' && ` on ${monitor.params.marketplace.toUpperCase()}`}
+                            Monitoring: {formatMonitorTitle(monitor.params)}
                           </h3>
                           <p className="text-sm text-muted-foreground">
                             {monitor.params.minPrice && `Min: ${monitor.params.minPrice} PLN`}
