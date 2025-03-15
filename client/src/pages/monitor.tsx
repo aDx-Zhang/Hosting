@@ -1,16 +1,21 @@
 import { useState } from "react";
 import { apiRequest } from "@/lib/queryClient";
-import { SearchParams } from "@shared/schema";
+import { SearchParams, Product } from "@shared/schema";
 import { SearchFilters } from "@/components/search-filters";
 import { ProductGrid } from "@/components/product-grid";
 import { Button } from "@/components/ui/button";
 import { Alert, AlertDescription } from "@/components/ui/alert";
-import { AlertTriangle } from "lucide-react";
+import { AlertTriangle, X } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 
+interface Monitor {
+  id: string;
+  params: SearchParams;
+  products: Product[];
+}
+
 export default function Monitor() {
-  const [isMonitoring, setIsMonitoring] = useState(false);
-  const [products, setProducts] = useState([]);
+  const [monitors, setMonitors] = useState<Monitor[]>([]);
   const [searchParams, setSearchParams] = useState<SearchParams>({
     query: "",
     marketplace: "all"
@@ -19,43 +24,63 @@ export default function Monitor() {
 
   const handleSearch = async (params: SearchParams) => {
     setSearchParams(params);
-
-    if (isMonitoring) {
-      // Stop current monitoring
-      await apiRequest("POST", "/api/monitor/stop", searchParams);
-      // Start new monitoring with updated params
-      await apiRequest("POST", "/api/monitor/start", params);
-
-      toast({
-        title: "Monitor Updated",
-        description: "Your monitoring criteria have been updated.",
-      });
-    }
   };
 
-  const toggleMonitoring = async () => {
+  const startNewMonitor = async () => {
     try {
-      if (isMonitoring) {
-        await apiRequest("POST", "/api/monitor/stop", searchParams);
-        setProducts([]);
-      } else {
-        await apiRequest("POST", "/api/monitor/start", searchParams);
-      }
+      // Generate a unique ID for the monitor
+      const monitorId = `${searchParams.query}_${searchParams.marketplace}_${Date.now()}`;
 
-      setIsMonitoring(!isMonitoring);
+      // Start monitoring on the backend
+      await apiRequest("POST", "/api/monitor/start", searchParams);
+
+      // Add new monitor to the state
+      setMonitors(prev => [...prev, {
+        id: monitorId,
+        params: { ...searchParams },
+        products: []
+      }]);
+
       toast({
-        title: isMonitoring ? "Monitoring Stopped" : "Monitoring Started",
-        description: isMonitoring 
-          ? "You will no longer receive notifications for new items." 
-          : "You will receive notifications when new items are found.",
+        title: "Monitor Started",
+        description: "You will receive notifications when new items are found.",
       });
     } catch (error) {
       toast({
         title: "Error",
-        description: "Failed to toggle monitoring. Please try again.",
+        description: "Failed to start monitoring. Please try again.",
         variant: "destructive",
       });
     }
+  };
+
+  const stopMonitor = async (monitorId: string) => {
+    try {
+      const monitor = monitors.find(m => m.id === monitorId);
+      if (monitor) {
+        await apiRequest("POST", "/api/monitor/stop", monitor.params);
+        setMonitors(prev => prev.filter(m => m.id !== monitorId));
+
+        toast({
+          title: "Monitor Stopped",
+          description: "You will no longer receive notifications for this search.",
+        });
+      }
+    } catch (error) {
+      toast({
+        title: "Error",
+        description: "Failed to stop monitoring. Please try again.",
+        variant: "destructive",
+      });
+    }
+  };
+
+  const updateMonitorProducts = (monitorId: string, newProducts: Product[]) => {
+    setMonitors(prev => prev.map(monitor => 
+      monitor.id === monitorId
+        ? { ...monitor, products: [...newProducts, ...monitor.products] }
+        : monitor
+    ));
   };
 
   return (
@@ -73,30 +98,55 @@ export default function Monitor() {
           <Alert className="mb-6">
             <AlertTriangle className="h-4 w-4" />
             <AlertDescription>
-              Set your search criteria and start monitoring. You'll be notified when new items are found.
+              Set your search criteria and start monitoring. You can have multiple monitors running at the same time.
             </AlertDescription>
           </Alert>
-
-          <div className="flex items-center gap-4 mb-6">
-            <Button 
-              onClick={toggleMonitoring}
-              variant={isMonitoring ? "destructive" : "default"}
-            >
-              {isMonitoring ? "Stop Monitoring" : "Start Monitoring"}
-            </Button>
-          </div>
 
           <SearchFilters
             onSearch={handleSearch}
             defaultValues={searchParams}
           />
 
-          <div className="mt-8">
-            <ProductGrid
-              products={products}
-              isLoading={false}
-              isMonitoring={isMonitoring}
-            />
+          <div className="mt-4">
+            <Button 
+              onClick={startNewMonitor}
+              className="w-full"
+            >
+              Start New Monitor
+            </Button>
+          </div>
+
+          <div className="mt-8 space-y-8">
+            {monitors.map((monitor) => (
+              <div key={monitor.id} className="bg-white rounded-lg shadow p-4">
+                <div className="flex items-center justify-between mb-4">
+                  <div>
+                    <h3 className="font-semibold">
+                      Monitoring: {monitor.params.query || "All Items"}
+                    </h3>
+                    <p className="text-sm text-muted-foreground">
+                      Marketplace: {monitor.params.marketplace}
+                      {monitor.params.minPrice && ` | Min: ${monitor.params.minPrice} PLN`}
+                      {monitor.params.maxPrice && ` | Max: ${monitor.params.maxPrice} PLN`}
+                    </p>
+                  </div>
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    onClick={() => stopMonitor(monitor.id)}
+                  >
+                    <X className="h-4 w-4" />
+                  </Button>
+                </div>
+                <ProductGrid
+                  products={monitor.products}
+                  isLoading={false}
+                  isMonitoring={true}
+                  monitorId={monitor.id}
+                  onNewProducts={(products) => updateMonitorProducts(monitor.id, products)}
+                />
+              </div>
+            ))}
           </div>
         </div>
       </main>

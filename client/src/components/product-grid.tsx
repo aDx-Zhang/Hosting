@@ -15,9 +15,17 @@ interface ProductGridProps {
   products: Product[];
   isLoading: boolean;
   isMonitoring?: boolean;
+  monitorId?: string;
+  onNewProducts?: (products: Product[]) => void;
 }
 
-export function ProductGrid({ products: initialProducts, isLoading, isMonitoring }: ProductGridProps) {
+export function ProductGrid({ 
+  products: initialProducts, 
+  isLoading, 
+  isMonitoring,
+  monitorId,
+  onNewProducts 
+}: ProductGridProps) {
   const [products, setProducts] = useState(initialProducts);
   const { toast } = useToast();
 
@@ -26,11 +34,13 @@ export function ProductGrid({ products: initialProducts, isLoading, isMonitoring
       switch (data.type) {
         case 'new_monitored_products': {
           const update = data as { type: string; products: Product[]; monitorId: string };
-          setProducts(prev => [...update.products, ...prev]);
-          toast({
-            title: 'New Products Found!',
-            description: `Found ${update.products.length} new items matching your criteria.`,
-          });
+          if (monitorId && update.monitorId === monitorId) {
+            onNewProducts?.(update.products);
+            toast({
+              title: 'New Products Found!',
+              description: `Found ${update.products.length} new items matching your criteria.`,
+            });
+          }
           break;
         }
         case 'new_product': {
@@ -44,7 +54,7 @@ export function ProductGrid({ products: initialProducts, isLoading, isMonitoring
         }
       }
     }
-  }, [toast]);
+  }, [toast, monitorId, onNewProducts]);
 
   useWebSocket({ onMessage: isMonitoring ? handleRealTimeUpdate : undefined });
 

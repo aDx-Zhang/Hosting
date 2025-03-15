@@ -6,6 +6,7 @@ import { log } from "../vite";
 class MonitoringService {
   private monitoringIntervals: Map<string, NodeJS.Timeout> = new Map();
   private seenProducts: Map<string, Set<string>> = new Map();
+  private currentId: number = 1;
 
   private generateMonitorId(params: SearchParams): string {
     return `${params.query}_${params.marketplace}_${params.minPrice}_${params.maxPrice}`;
@@ -13,14 +14,14 @@ class MonitoringService {
 
   startMonitoring(params: SearchParams) {
     const monitorId = this.generateMonitorId(params);
-    
+
     if (this.monitoringIntervals.has(monitorId)) {
       log(`Monitor ${monitorId} already exists`);
       return;
     }
 
     this.seenProducts.set(monitorId, new Set());
-    
+
     const interval = setInterval(async () => {
       try {
         const results = await Promise.allSettled([
@@ -34,12 +35,14 @@ class MonitoringService {
 
         results.forEach((result) => {
           if (result.status === 'fulfilled') {
-            result.value.forEach((product: Product) => {
+            result.value.forEach((product) => {
               const productKey = `${product.marketplace}_${product.originalUrl}`;
-              
+
               if (!seenSet.has(productKey)) {
                 seenSet.add(productKey);
-                newProducts.push(product);
+                // Add ID to product before broadcasting
+                const productWithId = { ...product, id: this.currentId++ };
+                newProducts.push(productWithId);
               }
             });
           }
@@ -65,7 +68,7 @@ class MonitoringService {
   stopMonitoring(params: SearchParams) {
     const monitorId = this.generateMonitorId(params);
     const interval = this.monitoringIntervals.get(monitorId);
-    
+
     if (interval) {
       clearInterval(interval);
       this.monitoringIntervals.delete(monitorId);
