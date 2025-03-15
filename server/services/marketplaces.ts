@@ -68,41 +68,29 @@ export class MarketplaceService {
   async searchVinted(query: string): Promise<InsertProduct[]> {
     try {
       log(`Searching Vinted for: ${query}`);
-      const response = await axios.get(`https://www.vinted.pl/api/v1/items`, {
+      const response = await axios.get(`https://www.vinted.pl/api/v1/catalog/items`, {
         params: {
-          search_text: query,
-          catalog_ids: '',
-          color_ids: '',
-          brand_ids: '',
-          size_ids: '',
-          material_ids: '',
-          status_ids: '',
-          is_for_swap: '0',
+          keyword: query,
           page: 1,
-          per_page: 40,
-          price_from: '',
-          price_to: '',
-          currency: 'PLN'
+          per_page: 40
         },
         headers: {
           ...this.headers,
           'Accept': 'application/json',
-          'Referer': 'https://www.vinted.pl/catalog',
+          'Referer': 'https://www.vinted.pl/',
           'Origin': 'https://www.vinted.pl',
-          'X-Device-Id': 'web',
-          'X-Platform': 'web',
-          'X-Requested-With': 'XMLHttpRequest'
+          'Auth': 'Bearer anonymous'
         }
       });
 
-      log('Vinted API response received');
+      log('Vinted API response:', response.data);
 
       if (response.data && response.data.items) {
         return response.data.items.map((item: any) => ({
           title: item.title,
           description: item.description || item.title,
           price: parseFloat(item.price) || 0,
-          image: item.photo?.url || this.getDefaultImage(),
+          image: item.photo?.full_size_url || this.getDefaultImage(),
           marketplace: 'vinted',
           originalUrl: `https://www.vinted.pl/items/${item.id}`,
           latitude: 52.2297,
@@ -113,6 +101,10 @@ export class MarketplaceService {
       return [];
     } catch (error) {
       log(`Error fetching from Vinted: ${error}`);
+      if (axios.isAxiosError(error) && error.response) {
+        log(`Vinted API error status: ${error.response.status}`);
+        log(`Vinted API error data:`, error.response.data);
+      }
       return [];
     }
   }
