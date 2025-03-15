@@ -16,6 +16,11 @@ export class MarketplaceService {
     return 'https://via.placeholder.com/300x300?text=No+Image';
   }
 
+  private fixImageUrl(url: string): string {
+    // Replace dynamic size parameters with fixed values
+    return url.replace('{width}x{height}', '400x300');
+  }
+
   async searchOLX(query: string): Promise<InsertProduct[]> {
     try {
       log(`Searching OLX for: ${query}`);
@@ -33,9 +38,10 @@ export class MarketplaceService {
       if (response.data && response.data.data) {
         return response.data.data.map((item: any) => {
           // Get the first photo URL or default image
-          const photoUrl = item.photos && item.photos.length > 0 
-            ? item.photos[0].link || this.getDefaultImage()
-            : this.getDefaultImage();
+          let photoUrl = this.getDefaultImage();
+          if (item.photos && item.photos.length > 0) {
+            photoUrl = this.fixImageUrl(item.photos[0].link);
+          }
 
           // Get price from params
           const priceParam = item.params?.find((p: any) => p.key === 'price');
@@ -80,9 +86,10 @@ export class MarketplaceService {
       if (response.data && response.data.items) {
         return response.data.items.map((item: any) => {
           // Get the first image URL or default image
-          const imageUrl = item.images && item.images.length > 0 
-            ? item.images[0].url || this.getDefaultImage()
-            : this.getDefaultImage();
+          let imageUrl = this.getDefaultImage();
+          if (item.images && item.images.length > 0) {
+            imageUrl = item.images[0].url;
+          }
 
           return {
             title: item.name,
