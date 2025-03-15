@@ -51,6 +51,8 @@ export default function Monitor() {
   const handleSearch = async (params: SearchParams) => {
     const updatedParams = {
       ...params,
+      query: params.query || "",
+      marketplace: params.marketplace || "all",
       minPrice: params.minPrice ? Number(params.minPrice) : undefined,
       maxPrice: params.maxPrice ? Number(params.maxPrice) : undefined
     };
@@ -59,12 +61,19 @@ export default function Monitor() {
 
   const startNewMonitor = async () => {
     try {
-      const res = await apiRequest("POST", "/api/monitor/start", searchParams);
+      // Ensure we're using the properly formatted search params
+      const monitorParams = {
+        ...searchParams,
+        minPrice: searchParams.minPrice ? Number(searchParams.minPrice) : undefined,
+        maxPrice: searchParams.maxPrice ? Number(searchParams.maxPrice) : undefined
+      };
+
+      const res = await apiRequest("POST", "/api/monitor/start", monitorParams);
       const data = await res.json();
 
       setMonitors(prev => [...prev, {
         id: data.monitorId,
-        params: searchParams,
+        params: monitorParams,
         products: []
       }]);
 

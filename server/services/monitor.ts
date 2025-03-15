@@ -3,7 +3,7 @@ import { marketplaceService } from "./marketplaces";
 import { broadcastUpdate } from "../routes";
 import { log } from "../vite";
 
-class MonitoringService {
+export class MonitoringService {
   private monitoringIntervals: Map<string, NodeJS.Timeout> = new Map();
   private seenProducts: Map<string, Set<string>> = new Map();
   private currentId: number = 1;
@@ -35,13 +35,13 @@ class MonitoringService {
         log(`Checking for new products with query: ${params.query}`);
         const results = await Promise.allSettled([
           params.marketplace === 'all' || params.marketplace === 'olx' 
-            ? marketplaceService.searchOLX(params.query)
+            ? marketplaceService.searchOLX(params.query || '')
             : Promise.resolve([]),
           params.marketplace === 'all' || params.marketplace === 'allegro' 
-            ? marketplaceService.searchAllegro(params.query)
+            ? marketplaceService.searchAllegro(params.query || '')
             : Promise.resolve([]),
           params.marketplace === 'all' || params.marketplace === 'vinted' 
-            ? marketplaceService.searchVinted(params.query)
+            ? marketplaceService.searchVinted(params.query || '')
             : Promise.resolve([])
         ]);
 
@@ -51,9 +51,15 @@ class MonitoringService {
         results.forEach((result) => {
           if (result.status === 'fulfilled') {
             result.value.forEach((product) => {
-              // Apply price filters
-              if (params.minPrice !== undefined && product.price < params.minPrice) return;
-              if (params.maxPrice !== undefined && product.price > params.maxPrice) return;
+              // Apply price filters if they exist
+              if (params.minPrice !== undefined && product.price < params.minPrice) {
+                log(`Skipping product ${product.title} due to price < ${params.minPrice}`);
+                return;
+              }
+              if (params.maxPrice !== undefined && product.price > params.maxPrice) {
+                log(`Skipping product ${product.title} due to price > ${params.maxPrice}`);
+                return;
+              }
 
               const productKey = `${product.marketplace}_${product.originalUrl}`;
 
