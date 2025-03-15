@@ -42,20 +42,19 @@ export default function Monitor() {
   const { toast } = useToast();
 
   const handleSearch = async (params: SearchParams) => {
+    // Update search parameters when form changes
     setSearchParams(params);
   };
 
   const startNewMonitor = async () => {
     try {
-      // Generate a unique ID for the monitor
-      const monitorId = `${searchParams.query || ''}_${searchParams.marketplace || 'all'}_${searchParams.minPrice || ''}_${searchParams.maxPrice || ''}`;
-
       // Start monitoring on the backend
-      await apiRequest("POST", "/api/monitor/start", searchParams);
+      const res = await apiRequest("POST", "/api/monitor/start", searchParams);
+      const data = await res.json();
 
-      // Add new monitor to the state
+      // Add new monitor to the state with full search parameters
       setMonitors(prev => [...prev, {
-        id: monitorId,
+        id: data.monitorId || searchParams.query || 'all',
         params: { ...searchParams },
         products: []
       }]);
@@ -63,7 +62,7 @@ export default function Monitor() {
       toast({
         title: "Monitor Created Successfully!",
         description: "You will receive notifications when new items are found.",
-        variant: "success",
+        variant: "default",
         duration: 3000,
       });
     } catch (error) {
