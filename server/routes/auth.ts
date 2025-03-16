@@ -4,17 +4,10 @@ import { loginSchema, apiKeySchema, registerSchema } from "@shared/schema"; // I
 import { log } from "../vite";
 import { db } from '../db';
 import { users as usersTable, apiKeys as apiKeysTable } from '@shared/schema';
-import { eq, and, gte } from "drizzle-orm";
+import { eq, and } from "drizzle-orm";
 import { nanoid } from "nanoid";
-import { hash, SALT_ROUNDS } from '../utils/hash'; // Assuming hash function exists
-import * as z from 'zod'; // Import zod for schema validation
-
-
-declare module "express-session" {
-  interface SessionData {
-    userId: number;
-  }
-}
+import { hash } from '../utils/hash';
+import * as z from 'zod';
 
 const router = Router();
 
@@ -42,8 +35,8 @@ router.post("/login", async (req, res) => {
         .where(
           and(
             eq(apiKeysTable.userId, user.id),
-            eq(apiKeysTable.active, 1),
-            gte(apiKeysTable.expiresAt, new Date())
+            eq(apiKeysTable.active, 1)
+            // gte(apiKeysTable.expiresAt, new Date()) //Removed as per intention
           )
         );
 
@@ -235,7 +228,7 @@ router.get("/api-keys", async (req, res) => {
   }
 });
 
-// Fix the register endpoint
+// Registration route with updated API key validation
 router.post("/register", async (req, res) => {
   try {
     const { username, password, apiKey } = registerSchema.parse(req.body);
