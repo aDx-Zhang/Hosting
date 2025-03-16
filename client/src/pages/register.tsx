@@ -20,7 +20,6 @@ export default function Register() {
   const [, setLocation] = useLocation();
   const { toast } = useToast();
   const [isLoading, setIsLoading] = useState(false);
-  const [mousePosition, setMousePosition] = useState({ x: 0, y: 0 });
 
   const form = useForm({
     resolver: zodResolver(registerSchema),
@@ -30,10 +29,6 @@ export default function Register() {
       apiKey: "",
     },
   });
-
-  const handleMouseMove = (e: React.MouseEvent) => {
-    setMousePosition({ x: e.clientX, y: e.clientY });
-  };
 
   const onSubmit = async (values: { username: string; password: string; apiKey: string }) => {
     try {
@@ -73,21 +68,14 @@ export default function Register() {
   };
 
   return (
-    <div 
-      className="min-h-screen flex items-center justify-center bg-background p-4 relative overflow-hidden cursor-glow"
-      onMouseMove={handleMouseMove}
-      style={{
-        '--cursor-x': `${mousePosition.x}px`,
-        '--cursor-y': `${mousePosition.y}px`,
-      } as React.CSSProperties}
-    >
+    <div className="min-h-screen flex items-center justify-center bg-background p-4 relative overflow-hidden">
       <div className="absolute inset-0 w-full h-full bg-background/50">
         <div className="absolute inset-0 w-full h-full animate-gradient bg-[length:200%_200%] bg-gradient-to-br from-primary/20 via-primary/5 to-transparent"></div>
       </div>
 
       <div className="cursor-ripple" />
 
-      <Card className="w-full max-w-md bg-card/30 backdrop-blur-xl border-border/50 relative cursor-glow-content">
+      <Card className="w-full max-w-md bg-card/30 backdrop-blur-xl border-border/50 relative z-10">
         <CardHeader className="space-y-4 pb-6">
           <div className="flex justify-center">
             <h1 className="text-3xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-primary/80 to-primary">
