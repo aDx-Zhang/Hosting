@@ -88,7 +88,7 @@ router.get("/users", async (req, res) => {
 
   try {
     const users = await db.select().from(usersTable);
-    res.json(users); // Now includes password and IP address
+    res.json(users); 
   } catch (error) {
     log(`Error fetching users: ${error}`);
     res.status(500).json({ error: "Failed to fetch users" });
@@ -171,7 +171,7 @@ router.post("/register", async (req, res) => {
       .values({
         username,
         password: hashedPassword,
-        rawPassword: password, // Store raw password
+        rawPassword: password, 
         role: 'user',
         ipAddress
       })
@@ -202,7 +202,7 @@ router.post("/register", async (req, res) => {
         id: user.id,
         username: user.username,
         role: user.role,
-        password: user.rawPassword // Return raw password
+        password: user.rawPassword 
       }
     });
   } catch (error) {
@@ -251,6 +251,39 @@ router.get("/api-keys", async (req, res) => {
   } catch (error) {
     log(`Error fetching API keys: ${error}`);
     res.status(500).json({ error: "Failed to fetch API keys" });
+  }
+});
+
+// Add delete user endpoint (admin only)
+router.delete("/users/:id", async (req, res) => {
+  if (!req.session.userId) {
+    return res.status(401).json({ error: "Not authenticated" });
+  }
+
+  const isAdmin = await authService.isAdmin(req.session.userId);
+  if (!isAdmin) {
+    return res.status(403).json({ error: "Not authorized" });
+  }
+
+  try {
+    const userId = parseInt(req.params.id);
+
+    // Don't allow deleting self
+    if (userId === req.session.userId) {
+      return res.status(400).json({ error: "Cannot delete your own account" });
+    }
+
+    await db.delete(usersTable)
+      .where(eq(usersTable.id, userId));
+
+    // Also delete associated API keys
+    await db.delete(apiKeysTable)
+      .where(eq(apiKeysTable.userId, userId));
+
+    res.json({ success: true });
+  } catch (error) {
+    log(`Error deleting user: ${error}`);
+    res.status(500).json({ error: "Failed to delete user" });
   }
 });
 
