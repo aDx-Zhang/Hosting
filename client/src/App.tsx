@@ -76,8 +76,6 @@ function Navigation() {
             </nav>
           </div>
           <div className="flex items-center gap-4">
-            <ConnectionStatus isConnected={isConnected} isConnecting={isConnecting} />
-            <Separator orientation="vertical" className="h-6 bg-purple-700/30" />
             <span className="text-sm text-gray-400">
               Welcome, {user.username}
             </span>
@@ -90,6 +88,8 @@ function Navigation() {
             >
               <LogOut className="h-4 w-4" />
             </Button>
+            <Separator orientation="vertical" className="h-6 bg-purple-700/30" />
+            <ConnectionStatus isConnected={isConnected} isConnecting={isConnecting} />
           </div>
         </div>
       </div>
