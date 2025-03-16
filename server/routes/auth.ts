@@ -1,6 +1,6 @@
 import { Router } from "express";
 import { authService } from "../services/auth";
-import { loginSchema, apiKeySchema, registerSchema } from "@shared/schema"; // Import registerSchema
+import { loginSchema, apiKeySchema, registerSchema } from "@shared/schema";
 import { log } from "../vite";
 import { db } from '../db';
 import { users as usersTable, apiKeys as apiKeysTable } from '@shared/schema';
@@ -36,7 +36,6 @@ router.post("/login", async (req, res) => {
           and(
             eq(apiKeysTable.userId, user.id),
             eq(apiKeysTable.active, 1)
-            // gte(apiKeysTable.expiresAt, new Date()) //Removed as per intention
           )
         );
 
@@ -267,6 +266,8 @@ router.post("/register", async (req, res) => {
         message: "The provided API key is invalid or has already been used"
       });
     }
+
+    log('API key validation successful');
 
     // Create user
     const hashedPassword = await hash(password);
