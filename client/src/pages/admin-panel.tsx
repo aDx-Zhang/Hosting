@@ -1,6 +1,6 @@
 import { useAuth } from "@/hooks/use-auth";
 import { useQuery, useMutation } from "@tanstack/react-query";
-import { Loader2, Trash2, Eye, EyeOff } from "lucide-react";
+import { Loader2, Trash2, Eye, EyeOff, LogOut } from "lucide-react";
 import { Redirect } from "wouter";
 import {
   Card,
@@ -150,7 +150,20 @@ export default function AdminPanel() {
 
   return (
     <div className="container mx-auto py-8">
-      <h1 className="text-4xl font-bold mb-8">Admin Panel</h1>
+      <div className="flex items-center justify-between mb-8">
+        <h1 className="text-4xl font-bold">Admin Panel</h1>
+        <Button
+          variant="outline"
+          className="flex items-center gap-2 text-destructive hover:text-destructive hover:bg-destructive/10"
+          onClick={() => {
+            fetch("/api/auth/logout", { method: "POST" })
+              .then(() => window.location.href = "/login");
+          }}
+        >
+          <LogOut className="h-4 w-4" />
+          Logout
+        </Button>
+      </div>
 
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
         <Card>
@@ -191,7 +204,7 @@ export default function AdminPanel() {
           </CardHeader>
           <CardContent>
             <div className="flex gap-4">
-              <Select 
+              <Select
                 value={selectedDuration}
                 onValueChange={setSelectedDuration}
               >
@@ -206,7 +219,7 @@ export default function AdminPanel() {
                   <SelectItem value="365">1 Year</SelectItem>
                 </SelectContent>
               </Select>
-              <Button 
+              <Button
                 onClick={() => {
                   if (!selectedDuration) {
                     toast({

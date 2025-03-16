@@ -8,7 +8,7 @@ import Monitor from "@/pages/monitor";
 import Login from "@/pages/login";
 import AdminPanel from "@/pages/admin-panel";
 import { useAuth } from "@/hooks/use-auth";
-import { Loader2, Menu } from "lucide-react";
+import { Loader2, Menu, Search, Bell, Settings, User as UserIcon } from "lucide-react";
 import { Redirect } from "wouter";
 import Register from "@/pages/register";
 import UserPanel from "@/pages/user-panel";
@@ -19,6 +19,7 @@ import {
   SheetTitle,
   SheetTrigger,
 } from "@/components/ui/sheet";
+import { Separator } from "@/components/ui/separator";
 
 function Navigation() {
   const [location] = useLocation();
@@ -39,41 +40,67 @@ function Navigation() {
                 <Menu className="h-5 w-5" />
               </button>
             </SheetTrigger>
-            <SheetContent side="left">
+            <SheetContent side="left" className="w-[300px] sm:w-[400px]">
               <SheetHeader>
-                <SheetTitle>Menu</SheetTitle>
+                <SheetTitle className="text-2xl font-bold">
+                  Market Monitor
+                </SheetTitle>
               </SheetHeader>
+
               <nav className="mt-8">
-                <div className="flex flex-col space-y-4">
-                  <Link href="/">
-                    <a className="text-primary hover:text-primary/80 py-2">Search</a>
-                  </Link>
-                  <Link href="/monitor">
-                    <a className="text-primary hover:text-primary/80 py-2">Monitor</a>
-                  </Link>
-                  {user?.role === 'admin' ? (
-                    <Link href="/admin">
-                      <a className="text-primary hover:text-primary/80 py-2">Admin Panel</a>
-                    </Link>
-                  ) : (
-                    <Link href="/user">
-                      <a className="text-primary hover:text-primary/80 py-2">Account</a>
-                    </Link>
-                  )}
+                <div className="space-y-8">
+                  <div className="space-y-4">
+                    <h4 className="text-sm font-medium text-muted-foreground px-2">
+                      Main Navigation
+                    </h4>
+                    <div className="space-y-1">
+                      <Link href="/">
+                        <a className="flex items-center gap-3 w-full px-2 py-2 text-sm hover:bg-muted rounded-md transition-colors">
+                          <Search className="h-4 w-4" />
+                          Search Products
+                        </a>
+                      </Link>
+                      <Link href="/monitor">
+                        <a className="flex items-center gap-3 w-full px-2 py-2 text-sm hover:bg-muted rounded-md transition-colors">
+                          <Bell className="h-4 w-4" />
+                          Monitor Prices
+                        </a>
+                      </Link>
+                    </div>
+                  </div>
+
+                  <Separator />
+
+                  <div className="space-y-4">
+                    <h4 className="text-sm font-medium text-muted-foreground px-2">
+                      Account
+                    </h4>
+                    <div className="space-y-1">
+                      {user?.role === 'admin' ? (
+                        <Link href="/admin">
+                          <a className="flex items-center gap-3 w-full px-2 py-2 text-sm hover:bg-muted rounded-md transition-colors">
+                            <Settings className="h-4 w-4" />
+                            Admin Panel
+                          </a>
+                        </Link>
+                      ) : (
+                        <Link href="/user">
+                          <a className="flex items-center gap-3 w-full px-2 py-2 text-sm hover:bg-muted rounded-md transition-colors">
+                            <UserIcon className="h-4 w-4" />
+                            My Account
+                          </a>
+                        </Link>
+                      )}
+                    </div>
+                  </div>
                 </div>
               </nav>
             </SheetContent>
           </Sheet>
 
-          <button
-            onClick={() => {
-              fetch("/api/auth/logout", { method: "POST" })
-                .then(() => window.location.href = "/login");
-            }}
-            className="text-primary hover:text-primary/80"
-          >
-            Logout
-          </button>
+          <div className="text-sm text-muted-foreground">
+            Welcome, {user.username}
+          </div>
         </div>
       </div>
     </header>
