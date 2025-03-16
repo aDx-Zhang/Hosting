@@ -8,10 +8,17 @@ import Monitor from "@/pages/monitor";
 import Login from "@/pages/login";
 import AdminPanel from "@/pages/admin-panel";
 import { useAuth } from "@/hooks/use-auth";
-import { Loader2 } from "lucide-react";
+import { Loader2, Menu } from "lucide-react";
 import { Redirect } from "wouter";
 import Register from "@/pages/register";
 import UserPanel from "@/pages/user-panel";
+import {
+  Sheet,
+  SheetContent,
+  SheetHeader,
+  SheetTitle,
+  SheetTrigger,
+} from "@/components/ui/sheet";
 
 function Navigation() {
   const [location] = useLocation();
@@ -23,26 +30,41 @@ function Navigation() {
   }
 
   return (
-    <nav className="bg-white border-b mb-4">
+    <header className="bg-white border-b">
       <div className="container mx-auto px-4">
         <div className="flex items-center justify-between h-14">
-          <div className="flex items-center gap-6">
-            <Link href="/">
-              <a className="text-primary hover:text-primary/80">Search</a>
-            </Link>
-            <Link href="/monitor">
-              <a className="text-primary hover:text-primary/80">Monitor</a>
-            </Link>
-            {user?.role === 'admin' ? (
-              <Link href="/admin">
-                <a className="text-primary hover:text-primary/80">Admin Panel</a>
-              </Link>
-            ) : (
-              <Link href="/user">
-                <a className="text-primary hover:text-primary/80">Account</a>
-              </Link>
-            )}
-          </div>
+          <Sheet>
+            <SheetTrigger asChild>
+              <button className="p-2 hover:bg-gray-100 rounded-md">
+                <Menu className="h-5 w-5" />
+              </button>
+            </SheetTrigger>
+            <SheetContent side="left">
+              <SheetHeader>
+                <SheetTitle>Menu</SheetTitle>
+              </SheetHeader>
+              <nav className="mt-8">
+                <div className="flex flex-col space-y-4">
+                  <Link href="/">
+                    <a className="text-primary hover:text-primary/80 py-2">Search</a>
+                  </Link>
+                  <Link href="/monitor">
+                    <a className="text-primary hover:text-primary/80 py-2">Monitor</a>
+                  </Link>
+                  {user?.role === 'admin' ? (
+                    <Link href="/admin">
+                      <a className="text-primary hover:text-primary/80 py-2">Admin Panel</a>
+                    </Link>
+                  ) : (
+                    <Link href="/user">
+                      <a className="text-primary hover:text-primary/80 py-2">Account</a>
+                    </Link>
+                  )}
+                </div>
+              </nav>
+            </SheetContent>
+          </Sheet>
+
           <button
             onClick={() => {
               fetch("/api/auth/logout", { method: "POST" })
@@ -54,7 +76,7 @@ function Navigation() {
           </button>
         </div>
       </div>
-    </nav>
+    </header>
   );
 }
 
