@@ -29,11 +29,9 @@ export function useWebSocket({ onMessage }: WebSocketHookOptions = {}) {
         socket.current = null;
       }
 
-      // Ensure correct WebSocket URL construction
+      // Create new WebSocket connection
       const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
       const wsUrl = `${protocol}//${window.location.host}/ws`;
-      console.log('Connecting to WebSocket at:', wsUrl);
-
       const ws = new WebSocket(wsUrl);
       socket.current = ws;
 
@@ -42,9 +40,6 @@ export function useWebSocket({ onMessage }: WebSocketHookOptions = {}) {
         setIsConnected(true);
         setIsConnecting(false);
         reconnectAttempt.current = 0;
-
-        // Send an initial message to test the connection
-        ws.send(JSON.stringify({ type: 'hello' }));
       };
 
       ws.onmessage = (event) => {
@@ -82,23 +77,12 @@ export function useWebSocket({ onMessage }: WebSocketHookOptions = {}) {
             clearTimeout(reconnectTimeoutRef.current);
           }
 
-          // Set up new reconnection attempt
-          console.log(`Attempting reconnect in ${backoffTime}ms (attempt ${reconnectAttempt.current})`);
+          // Schedule reconnection attempt
           reconnectTimeoutRef.current = setTimeout(() => {
-            // Double check we're still disconnected before attempting reconnect
             if (!isConnected && !isConnecting) {
               connect();
             }
           }, backoffTime);
-
-          // Only show toast on first disconnect
-          if (reconnectAttempt.current === 1) {
-            toast({
-              title: 'Connection Lost',
-              description: 'Attempting to reconnect...',
-              variant: 'destructive',
-            });
-          }
         } else {
           toast({
             title: 'Connection Failed',
@@ -118,18 +102,13 @@ export function useWebSocket({ onMessage }: WebSocketHookOptions = {}) {
     connect();
 
     return () => {
-      // Clear any pending reconnection timeout
       if (reconnectTimeoutRef.current) {
         clearTimeout(reconnectTimeoutRef.current);
       }
-
-      // Close existing socket connection
       if (socket.current) {
         socket.current.close();
         socket.current = null;
       }
-
-      // Reset connection state
       setIsConnected(false);
       setIsConnecting(false);
       reconnectAttempt.current = 0;

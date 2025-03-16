@@ -8,9 +8,6 @@ import { log } from "./vite";
 import { monitoringService } from "./services/monitor";
 import { authRouter } from "./routes/auth";
 
-// Keep track of all connected clients
-const clients = new Set<WebSocket>();
-
 // Send ping to keep connections alive
 function heartbeat(this: WebSocket & { isAlive?: boolean }) {
   this.isAlive = true;
@@ -82,10 +79,8 @@ export async function registerRoutes(app: Express) {
     perMessageDeflate: false
   });
 
-  // Handle server-side errors
-  wss.on('error', (error) => {
-    log(`WebSocket server error: ${error}`);
-  });
+  // Keep track of all connected clients
+  const clients = new Set<WebSocket>();
 
   function noop() {}
 
@@ -102,7 +97,6 @@ export async function registerRoutes(app: Express) {
     });
   }, 30000);
 
-  // Handle WebSocket connections
   wss.on('connection', (ws: WebSocket & { isAlive?: boolean }) => {
     log('New WebSocket client connected');
     ws.isAlive = true;
