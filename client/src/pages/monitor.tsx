@@ -25,13 +25,6 @@ function formatMonitorTitle(params: SearchParams): string {
     parts.push(`"${params.query.trim()}"`);
   }
 
-  if (params.minPrice !== undefined || params.maxPrice !== undefined) {
-    const priceRange = [];
-    if (params.minPrice !== undefined) priceRange.push(`${params.minPrice} PLN`);
-    if (params.maxPrice !== undefined) priceRange.push(`${params.maxPrice} PLN`);
-    parts.push(`(${priceRange.join(' - ')})`);
-  }
-
   if (params.marketplace && params.marketplace !== 'all') {
     parts.push(`on ${params.marketplace.toUpperCase()}`);
   }
@@ -39,13 +32,30 @@ function formatMonitorTitle(params: SearchParams): string {
   return parts.length > 0 ? parts.join(' ') : "All items on all marketplaces";
 }
 
+function formatPriceRange(params: SearchParams): string {
+  if (params.minPrice !== undefined || params.maxPrice !== undefined) {
+    const min = params.minPrice ?? 0;
+    const max = params.maxPrice ?? '∞';
+    return `${min} - ${max} PLN`;
+  }
+  return '';
+}
+
 function formatUpdateFrequency(seconds: number): string {
   if (seconds < 60) {
-    return `Updates every ${seconds} seconds`;
+    return `${seconds}s`;
   }
   const minutes = Math.floor(seconds / 60);
-  return `Updates every ${minutes} minute${minutes > 1 ? 's' : ''}`;
+  return `${minutes}m`;
 }
+
+// Placeholder for ConnectionStatus component - needs actual implementation
+const ConnectionStatus = ({ isConnected, isConnecting }: { isConnected: boolean; isConnecting: boolean }) => (
+  <span className={`px-2 py-0.5 rounded-full ${isConnected ? 'bg-green-500 text-white' : isConnecting ? 'bg-yellow-500 text-white' : 'bg-red-500 text-white'}`}>
+    {isConnected ? 'Connected' : isConnecting ? 'Connecting...' : 'Disconnected'}
+  </span>
+);
+
 
 export default function Monitor() {
   const [monitors, setMonitors] = useState<Monitor[]>([]);
@@ -215,28 +225,35 @@ export default function Monitor() {
                   {monitors.map((monitor) => (
                     <div key={monitor.id} className="group bg-[#241b35] rounded-lg border border-purple-700/30 shadow-sm hover:border-primary/20 hover:shadow-md transition-all">
                       <div className="p-6">
-                        <div className="flex items-center justify-between mb-6">
-                          <div className="space-y-1">
-                            <h3 className="text-lg font-semibold text-primary">
-                              {formatMonitorTitle(monitor.params)}
-                            </h3>
-                            <p className="text-sm text-gray-400">
-                              {formatUpdateFrequency(monitor.params.updateFrequency)}
-                            </p>
-                            {(monitor.params.minPrice !== undefined || monitor.params.maxPrice !== undefined) && (
-                              <p className="text-sm text-gray-400">
-                                Price range: {monitor.params.minPrice || 0} - {monitor.params.maxPrice || '∞'} PLN
-                              </p>
-                            )}
+                        <div className="flex items-center justify-between">
+                          <div className="flex-1 min-w-0">
+                            <div className="flex items-center gap-3">
+                              <h3 className="text-lg font-semibold text-primary truncate">
+                                {formatMonitorTitle(monitor.params)}
+                              </h3>
+                              <div className="flex items-center gap-2 text-sm text-gray-400">
+                                {formatPriceRange(monitor.params) && (
+                                  <span className="px-2 py-0.5 rounded-full bg-primary/10 text-primary">
+                                    {formatPriceRange(monitor.params)}
+                                  </span>
+                                )}
+                                <span className="px-2 py-0.5 rounded-full bg-primary/5">
+                                  {formatUpdateFrequency(monitor.params.updateFrequency)}
+                                </span>
+                              </div>
+                            </div>
                           </div>
-                          <Button
-                            variant="ghost"
-                            size="icon"
-                            onClick={() => stopMonitor(monitor.id)}
-                            className="opacity-0 group-hover:opacity-100 hover:bg-destructive/10 hover:text-destructive transition-opacity"
-                          >
-                            <X className="h-4 w-4" />
-                          </Button>
+                          <div className="flex items-center gap-3">
+                            <ConnectionStatus isConnected={true} isConnecting={false} />
+                            <Button
+                              variant="ghost"
+                              size="icon"
+                              onClick={() => stopMonitor(monitor.id)}
+                              className="opacity-0 group-hover:opacity-100 hover:bg-destructive/10 hover:text-destructive transition-opacity"
+                            >
+                              <X className="h-4 w-4" />
+                            </Button>
+                          </div>
                         </div>
 
                         <ProductGrid
