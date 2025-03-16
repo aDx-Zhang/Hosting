@@ -244,7 +244,6 @@ export default function Monitor() {
                             </div>
                           </div>
                           <div className="flex items-center gap-3">
-                            <ConnectionStatus isConnected={true} isConnecting={false} />
                             <Button
                               variant="ghost"
                               size="icon"
