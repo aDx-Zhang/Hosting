@@ -105,7 +105,7 @@ export default function UserPanel() {
       <div className="absolute inset-0 w-full h-full animate-gradient" />
       <div className="absolute inset-0 bg-grid-white/[0.02] -z-10" />
 
-      <div className="bg-[#2a1f3d] border-b border-purple-700/30 relative z-10">
+      <div className="relative z-10 bg-transparent border-b border-purple-700/30">
         <div className="container mx-auto flex items-center justify-between py-4 px-4">
           <div className="flex items-center gap-2">
             <span className="text-xl font-bold text-primary">FlipX</span>
