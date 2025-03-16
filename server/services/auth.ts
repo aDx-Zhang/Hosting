@@ -8,28 +8,23 @@ const SALT_ROUNDS = 10;
 export class AuthService {
   async createInitialAdminUser() {
     try {
-      // Check if admin exists
-      const [existingAdmin] = await db.select()
-        .from(users)
-        .where(eq(users.username, 'admin'));
+      // Delete any existing admin user first
+      await db.delete(users).where(eq(users.username, 'admin'));
 
-      if (!existingAdmin) {
-        const password = 'admin123';
-        const hashedPassword = await hash(password, SALT_ROUNDS);
+      // Create new admin user with correct password hash
+      const password = 'admin123';
+      const hashedPassword = await hash(password, SALT_ROUNDS);
 
-        const [user] = await db.insert(users)
-          .values({
-            username: 'admin',
-            password: hashedPassword,
-            role: 'admin'
-          })
-          .returning();
+      const [user] = await db.insert(users)
+        .values({
+          username: 'admin',
+          password: hashedPassword,
+          role: 'admin'
+        })
+        .returning();
 
-        console.log('Created initial admin user:', user.username);
-        return user;
-      }
-
-      return existingAdmin;
+      console.log('Created initial admin user with username:', user.username);
+      return user;
     } catch (error) {
       console.error('Error creating admin user:', error);
       throw error;
@@ -38,23 +33,23 @@ export class AuthService {
 
   async validateUser(username: string, password: string): Promise<User | null> {
     try {
-      console.log(`Attempting to validate user: ${username}`);
+      console.log('Validating user:', username);
 
       const [user] = await db.select()
         .from(users)
         .where(eq(users.username, username));
 
       if (!user) {
-        console.log(`No user found with username: ${username}`);
+        console.log('No user found with username:', username);
         return null;
       }
 
       const isValid = await compare(password, user.password);
-      console.log(`Password validation result for ${username}: ${isValid}`);
+      console.log('Password validation result:', isValid);
 
       return isValid ? user : null;
     } catch (error) {
-      console.error('Error validating user:', error);
+      console.error('Error during user validation:', error);
       return null;
     }
   }
