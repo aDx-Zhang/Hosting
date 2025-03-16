@@ -324,4 +324,46 @@ router.delete("/users/:id", async (req, res) => {
   }
 });
 
+// Add API key to user account
+router.post("/add-key", async (req, res) => {
+  if (!req.session.userId) {
+    return res.status(401).json({ error: "Not authenticated" });
+  }
+
+  try {
+    const { apiKey } = req.body;
+
+    // Find the API key in database
+    const [key] = await db.select()
+      .from(apiKeysTable)
+      .where(eq(apiKeysTable.key, apiKey))
+      .execute();
+
+    if (!key || key.userId !== null || key.active !== 1) {
+      return res.status(400).json({
+        error: "Invalid or already used API key"
+      });
+    }
+
+    // Calculate expiration date
+    const expiresAt = new Date();
+    expiresAt.setDate(expiresAt.getDate() + key.durationDays);
+
+    // Update API key with user ID and expiration
+    await db.update(apiKeysTable)
+      .set({
+        userId: req.session.userId,
+        expiresAt: expiresAt
+      })
+      .where(eq(apiKeysTable.id, key.id))
+      .execute();
+
+    log(`API key updated with user ID and expiration`);
+    res.json({ success: true });
+  } catch (error) {
+    log(`Error adding API key: ${error}`);
+    res.status(500).json({ error: "Failed to add API key" });
+  }
+});
+
 export { router as authRouter };

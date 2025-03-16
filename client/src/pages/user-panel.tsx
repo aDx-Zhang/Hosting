@@ -55,10 +55,12 @@ export default function UserPanel() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ apiKey: key })
       });
+
       if (!res.ok) {
         const error = await res.json();
-        throw new Error(error.message || 'Failed to add API key');
+        throw new Error(error.message || error.error || 'Failed to add API key');
       }
+
       return res.json();
     },
     onSuccess: () => {
