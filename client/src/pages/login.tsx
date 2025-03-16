@@ -72,8 +72,16 @@ export default function Login() {
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-background p-4">
-      <Card className="w-full max-w-md bg-card/50 backdrop-blur supports-[backdrop-filter]:bg-background/60 border-border/50">
+    <div className="min-h-screen flex items-center justify-center bg-background p-4 relative overflow-hidden">
+      {/* Animated background */}
+      <div className="absolute inset-0 w-full h-full bg-background" aria-hidden="true">
+        <div className="absolute inset-0 w-full h-full opacity-50 animate-gradient bg-[length:200%_200%] bg-gradient-to-r from-primary/20 via-primary/5 to-background"></div>
+        <div className="absolute inset-0 w-full h-full opacity-30">
+          <div className="absolute inset-0 rotate-45 blur-3xl bg-gradient-to-r from-primary/30 via-primary/10 to-transparent transform-gpu animate-pulse"></div>
+        </div>
+      </div>
+
+      <Card className="w-full max-w-md bg-card/30 backdrop-blur-xl border-border/50 relative z-10">
         <CardHeader className="space-y-4 pb-6">
           <div className="flex justify-center">
             <h1 className="text-3xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-primary/80 to-primary">
@@ -94,7 +102,11 @@ export default function Login() {
                   <FormItem>
                     <FormLabel>Username</FormLabel>
                     <FormControl>
-                      <Input placeholder="Enter your username" {...field} />
+                      <Input 
+                        placeholder="Enter your username" 
+                        className="bg-background/50 border-border/50"
+                        {...field} 
+                      />
                     </FormControl>
                     <FormMessage />
                   </FormItem>
@@ -111,6 +123,7 @@ export default function Login() {
                       <Input
                         type="password"
                         placeholder="Enter your password"
+                        className="bg-background/50 border-border/50"
                         {...field}
                       />
                     </FormControl>
@@ -135,14 +148,6 @@ export default function Login() {
                   </a>
                 </Link>
               </p>
-
-              <div className="bg-card/50 backdrop-blur supports-[backdrop-filter]:bg-background/60 rounded-lg p-4 mt-6 border border-border/50">
-                <p className="text-sm text-center text-muted-foreground">
-                  Demo credentials:<br />
-                  Username: <span className="text-primary">admin</span><br />
-                  Password: <span className="text-primary">admin123</span>
-                </p>
-              </div>
             </form>
           </Form>
         </CardContent>
