@@ -43,10 +43,11 @@ export const users = pgTable("users", {
 export const apiKeys = pgTable("api_keys", {
   id: serial("id").primaryKey(),
   key: text("key").notNull().unique(),
-  userId: integer("user_id").notNull(),
-  expiresAt: timestamp("expires_at").notNull(),
+  userId: integer("user_id"),
+  expiresAt: timestamp("expires_at"),
   createdAt: timestamp("created_at").defaultNow().notNull(),
   active: integer("active").default(1),
+  durationDays: integer("duration_days").notNull(), // Added field
 });
 
 // Update search params to remove location fields
@@ -80,7 +81,7 @@ export const registerSchema = z.object({
 
 export const apiKeySchema = z.object({
   durationDays: z.number().min(1).max(365),
-  userId: z.number().optional(), //Made userId optional
+  userId: z.number().optional(),
 });
 
 export type User = typeof users.$inferSelect;

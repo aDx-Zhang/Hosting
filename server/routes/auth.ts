@@ -7,6 +7,7 @@ import { users as usersTable, apiKeys as apiKeysTable } from '@shared/schema';
 import { eq, and, gte } from "drizzle-orm";
 import { nanoid } from "nanoid";
 import { hash, SALT_ROUNDS } from '../utils/hash'; // Assuming hash function exists
+import * as z from 'zod'; // Import zod for schema validation
 
 
 declare module "express-session" {
@@ -143,15 +144,14 @@ router.post("/generate-key", async (req, res) => {
   try {
     const { durationDays } = apiKeySchema.parse(req.body);
     const key = nanoid(32);
-    const expiresAt = new Date();
-    expiresAt.setDate(expiresAt.getDate() + durationDays);
 
     const [apiKey] = await db.insert(apiKeysTable)
       .values({
         key,
-        userId: req.session.userId,
-        expiresAt,
-        active: 1
+        userId: null, // Will be set when key is used
+        expiresAt: null, // Will be set when key is used
+        active: 1,
+        durationDays // Store the duration for later use
       })
       .returning();
 
@@ -161,6 +161,59 @@ router.post("/generate-key", async (req, res) => {
     res.status(500).json({ error: "Failed to generate API key" });
   }
 });
+
+// Add API key to existing user account
+router.post("/add-key", async (req, res) => {
+  if (!req.session.userId) {
+    return res.status(401).json({ error: "Not authenticated" });
+  }
+
+  try {
+    const { apiKey } = z.object({ apiKey: z.string() }).parse(req.body);
+
+    // Find and validate the API key
+    const [key] = await db.select()
+      .from(apiKeysTable)
+      .where(
+        and(
+          eq(apiKeysTable.key, apiKey),
+          eq(apiKeysTable.active, 1),
+          eq(apiKeysTable.userId, null)
+        )
+      );
+
+    if (!key) {
+      return res.status(400).json({
+        error: "Invalid API key",
+        message: "The provided API key is invalid or has already been used"
+      });
+    }
+
+    // Set expiration date based on stored duration
+    const expiresAt = new Date();
+    expiresAt.setDate(expiresAt.getDate() + key.durationDays);
+
+    // Update the API key with user ID and expiration
+    await db.update(apiKeysTable)
+      .set({
+        userId: req.session.userId,
+        expiresAt
+      })
+      .where(eq(apiKeysTable.key, apiKey));
+
+    res.json({
+      success: true,
+      expiresAt
+    });
+  } catch (error) {
+    log(`Error adding API key: ${error}`);
+    res.status(400).json({
+      error: "Invalid request",
+      message: "Please check your input and try again"
+    });
+  }
+});
+
 
 // Get all API keys (admin only)
 router.get("/api-keys", async (req, res) => {
@@ -182,7 +235,7 @@ router.get("/api-keys", async (req, res) => {
   }
 });
 
-// Add registration route with API key validation
+// Registration route with API key validation
 router.post("/register", async (req, res) => {
   try {
     const { username, password, apiKey } = registerSchema.parse(req.body);
@@ -200,20 +253,20 @@ router.post("/register", async (req, res) => {
     }
 
     // Validate API key
-    const [validKey] = await db.select()
+    const [key] = await db.select()
       .from(apiKeysTable)
       .where(
         and(
           eq(apiKeysTable.key, apiKey),
           eq(apiKeysTable.active, 1),
-          gte(apiKeysTable.expiresAt, new Date())
+          eq(apiKeysTable.userId, null)
         )
       );
 
-    if (!validKey) {
+    if (!key) {
       return res.status(400).json({
         error: "Invalid API key",
-        message: "The provided API key is invalid or expired"
+        message: "The provided API key is invalid or has already been used"
       });
     }
 
@@ -227,9 +280,16 @@ router.post("/register", async (req, res) => {
       })
       .returning();
 
-    // Update API key with user ID
+    // Set expiration date based on stored duration
+    const expiresAt = new Date();
+    expiresAt.setDate(expiresAt.getDate() + key.durationDays);
+
+    // Update API key with user ID and expiration
     await db.update(apiKeysTable)
-      .set({ userId: user.id })
+      .set({
+        userId: user.id,
+        expiresAt
+      })
       .where(eq(apiKeysTable.key, apiKey));
 
     // Set up session
@@ -252,7 +312,7 @@ router.post("/register", async (req, res) => {
   }
 });
 
-// Add this route at the end of the file, before export
+// Add subscription info endpoint
 router.get("/subscription", async (req, res) => {
   if (!req.session.userId) {
     return res.status(401).json({ error: "Not authenticated" });
