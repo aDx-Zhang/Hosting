@@ -18,10 +18,13 @@ import {
 import { Button } from "@/components/ui/button";
 import { useToast } from "@/hooks/use-toast";
 import type { User, ApiKey } from "@shared/schema";
+import { useState } from "react";
+import { queryClient } from "@/lib/queryClient";
 
 export default function AdminPanel() {
   const { user } = useAuth();
   const { toast } = useToast();
+  const [selectedDuration, setSelectedDuration] = useState<string>();
 
   // Redirect non-admin users
   if (user && user.role !== 'admin') {
@@ -58,6 +61,8 @@ export default function AdminPanel() {
         title: 'API Key Generated',
         description: `New key: ${data.key}`,
       });
+      queryClient.invalidateQueries({ queryKey: ['/api/auth/api-keys'] });
+      setSelectedDuration(undefined); // Reset selection
     },
     onError: () => {
       toast({
@@ -120,9 +125,8 @@ export default function AdminPanel() {
           <CardContent>
             <div className="flex gap-4">
               <Select 
-                onValueChange={(value) => {
-                  generateKeyMutation.mutate(parseInt(value));
-                }}
+                value={selectedDuration}
+                onValueChange={setSelectedDuration}
               >
                 <SelectTrigger className="w-[180px]">
                   <SelectValue placeholder="Select duration" />
@@ -136,10 +140,16 @@ export default function AdminPanel() {
                 </SelectContent>
               </Select>
               <Button 
-                onClick={() => toast({
-                  title: 'Select Duration',
-                  description: 'Please select a duration first',
-                })}
+                onClick={() => {
+                  if (!selectedDuration) {
+                    toast({
+                      title: 'Select Duration',
+                      description: 'Please select a duration first',
+                    });
+                    return;
+                  }
+                  generateKeyMutation.mutate(parseInt(selectedDuration));
+                }}
                 disabled={generateKeyMutation.isPending}
               >
                 {generateKeyMutation.isPending ? (
@@ -197,7 +207,6 @@ export default function AdminPanel() {
           </CardContent>
         </Card>
       </div>
-
       <div className="mt-8">
         <Card>
           <CardHeader>
