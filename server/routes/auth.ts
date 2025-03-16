@@ -4,7 +4,7 @@ import { loginSchema, apiKeySchema, registerSchema } from "@shared/schema";
 import { log } from "../vite";
 import { db } from '../db';
 import { users as usersTable, apiKeys as apiKeysTable } from '@shared/schema';
-import { eq } from "drizzle-orm";
+import { eq, and, desc, gte } from "drizzle-orm";
 import { nanoid } from "nanoid";
 import { hash } from '../utils/hash';
 
@@ -251,6 +251,43 @@ router.get("/api-keys", async (req, res) => {
   } catch (error) {
     log(`Error fetching API keys: ${error}`);
     res.status(500).json({ error: "Failed to fetch API keys" });
+  }
+});
+
+// Add subscription endpoint to show API key info
+router.get("/subscription", async (req, res) => {
+  if (!req.session.userId) {
+    return res.status(401).json({ error: "Not authenticated" });
+  }
+
+  try {
+    const [activeKey] = await db.select({
+      key: apiKeysTable.key,
+      expiresAt: apiKeysTable.expiresAt,
+      active: apiKeysTable.active,
+    })
+    .from(apiKeysTable)
+    .where(
+      and(
+        eq(apiKeysTable.userId, req.session.userId),
+        eq(apiKeysTable.active, 1),
+        gte(apiKeysTable.expiresAt, new Date())
+      )
+    )
+    .orderBy(desc(apiKeysTable.expiresAt));
+
+    if (!activeKey) {
+      return res.json(null);
+    }
+
+    res.json({
+      key: activeKey.key,
+      expiresAt: activeKey.expiresAt,
+      active: Boolean(activeKey.active)
+    });
+  } catch (error) {
+    log(`Error fetching subscription info: ${error}`);
+    res.status(500).json({ error: "Failed to fetch subscription information" });
   }
 });
 

@@ -1,6 +1,6 @@
 import { useAuth } from "@/hooks/use-auth";
 import { useQuery, useMutation } from "@tanstack/react-query";
-import { Loader2, Calendar, CheckCircle2, XCircle, LogOut } from "lucide-react";
+import { Loader2, Calendar, CheckCircle2, XCircle, LogOut, Key } from "lucide-react";
 import { Redirect } from "wouter";
 import {
   Card,
@@ -16,6 +16,7 @@ import { useState } from "react";
 import { queryClient } from "@/lib/queryClient";
 
 interface SubscriptionInfo {
+  key: string;
   expiresAt: string;
   active: boolean;
 }
@@ -149,6 +150,13 @@ export default function UserPanel() {
                         <span className="text-sm text-muted-foreground ml-1">left</span>
                       </div>
                     )}
+                  </div>
+
+                  <div className="p-4 bg-card/50 rounded-lg border border-border/50">
+                    <div className="flex items-center gap-2 text-sm">
+                      <Key className="h-4 w-4 text-primary" />
+                      <span className="font-mono">{subscription.key}</span>
+                    </div>
                   </div>
 
                   {!subscription.active && (
