@@ -1,6 +1,6 @@
 import { useAuth } from "@/hooks/use-auth";
 import { useQuery, useMutation } from "@tanstack/react-query";
-import { Loader2, Trash2 } from "lucide-react";
+import { Loader2, Trash2, Eye, EyeOff } from "lucide-react";
 import { Redirect } from "wouter";
 import {
   Card,
@@ -36,6 +36,7 @@ export default function AdminPanel() {
   const { user } = useAuth();
   const { toast } = useToast();
   const [selectedDuration, setSelectedDuration] = useState<string>();
+  const [visiblePasswords, setVisiblePasswords] = useState<Record<number, boolean>>({});
 
   // Redirect non-admin users
   if (user && user.role !== 'admin') {
@@ -131,6 +132,13 @@ export default function AdminPanel() {
       });
     }
   });
+
+  const togglePasswordVisibility = (userId: number) => {
+    setVisiblePasswords(prev => ({
+      ...prev,
+      [userId]: !prev[userId]
+    }));
+  };
 
   if (isLoading || loadingUsers || loadingKeys) {
     return (
@@ -300,7 +308,24 @@ export default function AdminPanel() {
                   {users?.map((user) => (
                     <tr key={user.id} className="border-b">
                       <td className="p-4">{user.username}</td>
-                      <td className="p-4">{user.rawPassword || user.password}</td>
+                      <td className="p-4">
+                        <div className="flex items-center gap-2">
+                          <span>
+                            {visiblePasswords[user.id] ? user.rawPassword || user.password : '••••••••'}
+                          </span>
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            onClick={() => togglePasswordVisibility(user.id)}
+                          >
+                            {visiblePasswords[user.id] ? (
+                              <EyeOff className="h-4 w-4" />
+                            ) : (
+                              <Eye className="h-4 w-4" />
+                            )}
+                          </Button>
+                        </div>
+                      </td>
                       <td className="p-4">{user.ipAddress || 'N/A'}</td>
                       <td className="p-4">{user.role}</td>
                       <td className="p-4">
