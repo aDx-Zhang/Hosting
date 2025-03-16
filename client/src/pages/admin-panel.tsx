@@ -1,6 +1,6 @@
 import { useAuth } from "@/hooks/use-auth";
 import { useQuery, useMutation } from "@tanstack/react-query";
-import { Loader2 } from "lucide-react";
+import { Loader2, Trash2 } from "lucide-react";
 import { Redirect } from "wouter";
 import {
   Card,
@@ -68,6 +68,30 @@ export default function AdminPanel() {
       toast({
         title: 'Error',
         description: 'Failed to generate API key',
+        variant: 'destructive',
+      });
+    }
+  });
+
+  const deleteKeyMutation = useMutation({
+    mutationFn: async (keyId: number) => {
+      const response = await fetch(`/api/auth/api-keys/${keyId}`, {
+        method: 'DELETE'
+      });
+      if (!response.ok) throw new Error('Failed to delete key');
+      return response.json();
+    },
+    onSuccess: () => {
+      toast({
+        title: 'Success',
+        description: 'API key deleted successfully',
+      });
+      queryClient.invalidateQueries({ queryKey: ['/api/auth/api-keys'] });
+    },
+    onError: () => {
+      toast({
+        title: 'Error',
+        description: 'Failed to delete API key',
         variant: 'destructive',
       });
     }
@@ -180,6 +204,7 @@ export default function AdminPanel() {
                     <th className="text-left p-4">Created</th>
                     <th className="text-left p-4">Expires</th>
                     <th className="text-left p-4">Status</th>
+                    <th className="text-left p-4">Actions</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -190,14 +215,24 @@ export default function AdminPanel() {
                         {new Date(key.createdAt).toLocaleDateString()}
                       </td>
                       <td className="p-4">
-                        {new Date(key.expiresAt).toLocaleDateString()}
+                        {key.expiresAt ? new Date(key.expiresAt).toLocaleDateString() : 'Not activated'}
                       </td>
                       <td className="p-4">
                         <span className={`px-2 py-1 rounded-full text-xs ${
                           key.active ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'
                         }`}>
-                          {key.active ? 'Active' : 'Expired'}
+                          {key.active ? (key.userId ? 'Used' : 'Available') : 'Expired'}
                         </span>
+                      </td>
+                      <td className="p-4">
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          onClick={() => deleteKeyMutation.mutate(key.id)}
+                          disabled={deleteKeyMutation.isPending}
+                        >
+                          <Trash2 className="h-4 w-4" />
+                        </Button>
                       </td>
                     </tr>
                   ))}
@@ -207,6 +242,7 @@ export default function AdminPanel() {
           </CardContent>
         </Card>
       </div>
+
       <div className="mt-8">
         <Card>
           <CardHeader>

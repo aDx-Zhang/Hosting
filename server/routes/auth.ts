@@ -235,7 +235,7 @@ router.get("/api-keys", async (req, res) => {
   }
 });
 
-// Registration route with API key validation
+// Fix the register endpoint
 router.post("/register", async (req, res) => {
   try {
     const { username, password, apiKey } = registerSchema.parse(req.body);
@@ -252,7 +252,7 @@ router.post("/register", async (req, res) => {
       });
     }
 
-    // Validate API key
+    // Find and validate the API key
     const [key] = await db.select()
       .from(apiKeysTable)
       .where(
@@ -271,7 +271,7 @@ router.post("/register", async (req, res) => {
     }
 
     // Create user
-    const hashedPassword = await hash(password, SALT_ROUNDS);
+    const hashedPassword = await hash(password);
     const [user] = await db.insert(usersTable)
       .values({
         username,
@@ -304,7 +304,7 @@ router.post("/register", async (req, res) => {
       }
     });
   } catch (error) {
-    log(`Registration error: ${error}`);
+    console.error('Registration error:', error);
     res.status(400).json({
       error: "Invalid request",
       message: "Please check your input and try again"
@@ -312,26 +312,26 @@ router.post("/register", async (req, res) => {
   }
 });
 
-// Add subscription info endpoint
-router.get("/subscription", async (req, res) => {
+// Add delete API key endpoint
+router.delete("/api-keys/:id", async (req, res) => {
   if (!req.session.userId) {
     return res.status(401).json({ error: "Not authenticated" });
   }
 
+  const isAdmin = await authService.isAdmin(req.session.userId);
+  if (!isAdmin) {
+    return res.status(403).json({ error: "Not authorized" });
+  }
+
   try {
-    const subscriptionInfo = await storage.getUserSubscriptionInfo(req.session.userId);
+    const keyId = parseInt(req.params.id);
+    await db.delete(apiKeysTable)
+      .where(eq(apiKeysTable.id, keyId));
 
-    if (!subscriptionInfo) {
-      return res.json({
-        active: false,
-        expiresAt: null
-      });
-    }
-
-    res.json(subscriptionInfo);
+    res.json({ success: true });
   } catch (error) {
-    log(`Error fetching subscription info: ${error}`);
-    res.status(500).json({ error: "Failed to fetch subscription information" });
+    log(`Error deleting API key: ${error}`);
+    res.status(500).json({ error: "Failed to delete API key" });
   }
 });
 
