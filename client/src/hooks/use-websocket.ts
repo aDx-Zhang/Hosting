@@ -11,6 +11,7 @@ export function useWebSocket({ onMessage }: WebSocketHookOptions = {}) {
   const [isConnected, setIsConnected] = useState(false);
   const { toast } = useToast();
   const maxReconnectAttempts = 5;
+  const reconnectTimeoutRef = useRef<NodeJS.Timeout>();
 
   const connect = useCallback(() => {
     if (socket.current?.readyState === WebSocket.OPEN) {
@@ -18,44 +19,64 @@ export function useWebSocket({ onMessage }: WebSocketHookOptions = {}) {
     }
 
     try {
+      // Clear any existing socket
+      if (socket.current) {
+        socket.current.close();
+        socket.current = null;
+      }
+
       const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
       const wsUrl = `${protocol}//${window.location.host}/ws`;
 
-      socket.current = new WebSocket(wsUrl);
+      const ws = new WebSocket(wsUrl);
+      socket.current = ws;
 
-      socket.current.onopen = () => {
+      ws.onopen = () => {
         console.log('WebSocket connected');
         setIsConnected(true);
-        reconnectAttempt.current = 0; // Reset reconnect attempts on successful connection
+        reconnectAttempt.current = 0;
 
-        // Clear any existing error toasts
         toast({
           title: 'Connected',
           description: 'Real-time updates are now active',
         });
       };
 
-      socket.current.onmessage = (event) => {
+      ws.onmessage = (event) => {
         try {
           const data = JSON.parse(event.data);
-          onMessage?.(data);
+          if (data.type === 'connection_established') {
+            setIsConnected(true);
+          } else {
+            onMessage?.(data);
+          }
         } catch (error) {
           console.error('Failed to parse WebSocket message:', error);
         }
       };
 
-      socket.current.onerror = (error) => {
+      ws.onerror = (error) => {
         console.error('WebSocket error:', error);
         setIsConnected(false);
       };
 
-      socket.current.onclose = () => {
+      ws.onclose = () => {
         console.log('WebSocket disconnected');
         setIsConnected(false);
+        socket.current = null;
 
         if (reconnectAttempt.current < maxReconnectAttempts) {
           const backoffTime = Math.min(1000 * Math.pow(2, reconnectAttempt.current), 30000);
           reconnectAttempt.current++;
+
+          console.log(`Attempting reconnect in ${backoffTime}ms (attempt ${reconnectAttempt.current})`);
+
+          // Clear any existing timeout
+          if (reconnectTimeoutRef.current) {
+            clearTimeout(reconnectTimeoutRef.current);
+          }
+
+          reconnectTimeoutRef.current = setTimeout(connect, backoffTime);
 
           if (reconnectAttempt.current === 1) {
             toast({
@@ -64,9 +85,6 @@ export function useWebSocket({ onMessage }: WebSocketHookOptions = {}) {
               variant: 'destructive',
             });
           }
-
-          console.log(`Attempting reconnect in ${backoffTime}ms (attempt ${reconnectAttempt.current})`);
-          setTimeout(connect, backoffTime);
         } else {
           toast({
             title: 'Connection Failed',
@@ -85,6 +103,9 @@ export function useWebSocket({ onMessage }: WebSocketHookOptions = {}) {
     connect();
 
     return () => {
+      if (reconnectTimeoutRef.current) {
+        clearTimeout(reconnectTimeoutRef.current);
+      }
       if (socket.current) {
         socket.current.close();
         socket.current = null;

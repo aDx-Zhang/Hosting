@@ -11,7 +11,7 @@ import { authRouter } from "./routes/auth";
 const clients = new Set<WebSocket>();
 
 // Send ping to keep connections alive
-function heartbeat(this: WebSocket) {
+function heartbeat(this: WebSocket & { isAlive?: boolean }) {
   this.isAlive = true;
 }
 
@@ -77,7 +77,13 @@ export async function registerRoutes(app: Express) {
   const httpServer = createServer(app);
 
   // Initialize WebSocket server
-  const wss = new WebSocketServer({ server: httpServer, path: '/ws' });
+  const wss = new WebSocketServer({ 
+    server: httpServer, 
+    path: '/ws',
+    perMessageDeflate: false // Disable per-message deflate to reduce overhead
+  });
+
+  function noop() {}
 
   // Ping clients every 30 seconds to keep connections alive
   const interval = setInterval(() => {
@@ -88,7 +94,7 @@ export async function registerRoutes(app: Express) {
       }
 
       ws.isAlive = false;
-      ws.ping();
+      ws.ping(noop);
     });
   }, 30000);
 
@@ -97,6 +103,14 @@ export async function registerRoutes(app: Express) {
     ws.isAlive = true;
     ws.on('pong', heartbeat);
     clients.add(ws);
+
+    // Send initial connection confirmation
+    ws.send(JSON.stringify({ type: 'connection_established' }));
+
+    ws.on('error', (error) => {
+      log(`WebSocket error: ${error}`);
+      clients.delete(ws);
+    });
 
     ws.on('close', () => {
       log('Client disconnected');
