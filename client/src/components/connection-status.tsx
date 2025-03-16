@@ -1,5 +1,4 @@
 import { Loader2 } from "lucide-react";
-import { AnimatedEmoji } from "./animated-emoji";
 
 interface ConnectionStatusProps {
   isConnected: boolean;
@@ -10,8 +9,8 @@ export function ConnectionStatus({ isConnected, isConnecting }: ConnectionStatus
   if (isConnecting) {
     return (
       <div className="flex items-center gap-2">
-        <AnimatedEmoji state="connecting" className="text-lg" />
-        <Loader2 className="h-4 w-4 animate-spin text-muted-foreground" />
+        <span className="text-sm text-yellow-500">reconnecting</span>
+        <Loader2 className="h-3 w-3 animate-spin text-yellow-500" />
       </div>
     );
   }
@@ -19,14 +18,14 @@ export function ConnectionStatus({ isConnected, isConnecting }: ConnectionStatus
   if (!isConnected) {
     return (
       <div className="flex items-center">
-        <AnimatedEmoji state="disconnected" className="text-lg" />
+        <span className="text-sm text-red-500">disconnected</span>
       </div>
     );
   }
 
   return (
     <div className="flex items-center">
-      <AnimatedEmoji state="connected" className="text-lg" />
+      <span className="text-sm text-green-500">connected</span>
     </div>
   );
 }
