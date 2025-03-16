@@ -108,7 +108,7 @@ export function ProductGrid({
       );
     }
 
-    // Use the products from state for display
+    // Use only the products from state for display
     const displayProducts = products;
 
     if (displayProducts.length === 0) {

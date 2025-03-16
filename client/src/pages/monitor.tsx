@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { apiRequest } from "@/lib/queryClient";
 import { SearchParams, Product } from "@shared/schema";
 import { SearchFilters } from "@/components/search-filters";
@@ -50,6 +50,7 @@ function formatUpdateFrequency(seconds: number): string {
 export default function Monitor() {
   const [monitors, setMonitors] = useState<Monitor[]>([]);
   const [isLoading, setIsLoading] = useState(true);
+  const deletedMonitorIds = useRef(new Set<string>());
   const [searchParams, setSearchParams] = useState<SearchParams>({
     query: "",
     marketplace: "all",
@@ -68,14 +69,19 @@ export default function Monitor() {
         const data = await res.json();
         console.log("Loaded monitors:", data);
 
-        setMonitors(data.map((monitor: any) => ({
-          id: monitor.id.toString(),
-          params: typeof monitor.params === 'string'
-            ? JSON.parse(monitor.params)
-            : monitor.params,
-          products: [],
-          startTime: Date.parse(monitor.startTime) || Date.now()
-        })));
+        // Filter out deleted monitors when setting initial state
+        const activeMonitors = data
+          .filter((monitor: any) => !deletedMonitorIds.current.has(monitor.id.toString()))
+          .map((monitor: any) => ({
+            id: monitor.id.toString(),
+            params: typeof monitor.params === 'string'
+              ? JSON.parse(monitor.params)
+              : monitor.params,
+            products: [],
+            startTime: Date.parse(monitor.startTime) || Date.now()
+          }));
+
+        setMonitors(activeMonitors);
       } catch (error) {
         console.error('Failed to load monitors:', error);
         toast({
@@ -127,7 +133,10 @@ export default function Monitor() {
       console.log("Stopping monitor:", monitorId);
       await apiRequest("POST", "/api/monitor/stop", { monitorId });
 
-      // Only remove from state after successful API call
+      // Add to deleted monitors set
+      deletedMonitorIds.current.add(monitorId);
+
+      // Remove from state
       setMonitors(prev => prev.filter(m => m.id !== monitorId));
 
       toast({
@@ -146,12 +155,15 @@ export default function Monitor() {
   };
 
   const updateMonitorProducts = (monitorId: string, newProducts: Product[]) => {
-    console.log("Updating products for monitor", monitorId, "with", newProducts);
-    setMonitors(prev => prev.map(monitor =>
-      monitor.id === monitorId
-        ? { ...monitor, products: [...newProducts, ...monitor.products] }
-        : monitor
-    ));
+    // Only update if monitor hasn't been deleted
+    if (!deletedMonitorIds.current.has(monitorId)) {
+      console.log("Updating products for monitor", monitorId, "with", newProducts);
+      setMonitors(prev => prev.map(monitor =>
+        monitor.id === monitorId
+          ? { ...monitor, products: [...newProducts, ...monitor.products] }
+          : monitor
+      ));
+    }
   };
 
   if (isLoading) {
