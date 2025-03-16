@@ -43,11 +43,11 @@ export const users = pgTable("users", {
 export const apiKeys = pgTable("api_keys", {
   id: serial("id").primaryKey(),
   key: text("key").notNull().unique(),
-  userId: integer("user_id"),
-  expiresAt: timestamp("expires_at"),
+  userId: integer("user_id"), // Remove .notNull()
+  expiresAt: timestamp("expires_at"), // Remove .notNull()
   createdAt: timestamp("created_at").defaultNow().notNull(),
   active: integer("active").default(1),
-  durationDays: integer("duration_days").notNull(), // Added field
+  durationDays: integer("duration_days").notNull(),
 });
 
 // Update search params to remove location fields
