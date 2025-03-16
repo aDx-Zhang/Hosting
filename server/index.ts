@@ -29,6 +29,20 @@ app.use(session({
   }
 }));
 
+// Enable WebSocket upgrade and CORS
+app.use((req, res, next) => {
+  res.setHeader('Access-Control-Allow-Origin', '*');
+  res.setHeader('Access-Control-Allow-Methods', 'GET, POST, OPTIONS, PUT, PATCH, DELETE, Upgrade');
+  res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization, Connection, Upgrade');
+  res.setHeader('Access-Control-Allow-Credentials', 'true');
+
+  if (req.method === 'OPTIONS') {
+    res.sendStatus(200);
+  } else {
+    next();
+  }
+});
+
 // Request logging middleware
 app.use((req, res, next) => {
   const start = Date.now();
