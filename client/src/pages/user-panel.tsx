@@ -38,14 +38,13 @@ export default function UserPanel() {
   const { toast } = useToast();
   const [apiKey, setApiKey] = useState("");
 
-  // Redirect if not logged in
   if (!user) {
     return <Redirect to="/login" />;
   }
 
   const { data: subscription, isLoading } = useQuery<SubscriptionInfo>({
     queryKey: ['/api/auth/subscription'],
-    staleTime: 1000 * 60, // 1 minute
+    staleTime: 1000 * 60,
   });
 
   const addKeyMutation = useMutation({
@@ -106,21 +105,19 @@ export default function UserPanel() {
       <div className="absolute inset-0 w-full h-full animate-gradient" />
       <div className="absolute inset-0 bg-grid-white/[0.02] -z-10" />
 
-      <div className="relative z-10"> {/*This line was added from edited code*/}
-        <div className="container mx-auto py-4 px-4">
-          <div className="flex items-center justify-between">
-            <h1 className="text-3xl font-bold text-white">
-              API Key Time Remaining
-            </h1>
-            <Button
-              variant="outline"
-              className="flex items-center gap-2 text-destructive hover:text-destructive hover:bg-destructive/10"
-              onClick={handleLogout}
-            >
-              <LogOut className="h-4 w-4" />
-              Logout
-            </Button>
+      <div className="bg-[#2a1f3d] border-b border-purple-700/30 relative z-10">
+        <div className="container mx-auto flex items-center justify-between py-4 px-4">
+          <div className="flex items-center gap-2">
+            <span className="text-xl font-bold text-primary">FlipX</span>
           </div>
+          <Button
+            variant="outline"
+            className="flex items-center gap-2 text-destructive hover:text-destructive hover:bg-destructive/10"
+            onClick={handleLogout}
+          >
+            <LogOut className="h-4 w-4" />
+            Logout
+          </Button>
         </div>
       </div>
 
