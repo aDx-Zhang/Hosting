@@ -10,8 +10,6 @@ import { useToast } from "@/hooks/use-toast";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useAuth } from "@/hooks/use-auth";
 import { LoadingIndicator } from "@/components/ui/loading-indicator";
-import { useWebSocket } from "@/hooks/use-websocket";
-import { ConnectionStatus } from "@/components/connection-status";
 
 interface Monitor {
   id: string;
@@ -27,6 +25,13 @@ function formatMonitorTitle(params: SearchParams): string {
     parts.push(`"${params.query.trim()}"`);
   }
 
+  if (params.minPrice !== undefined || params.maxPrice !== undefined) {
+    const priceRange = [];
+    if (params.minPrice !== undefined) priceRange.push(`${params.minPrice} PLN`);
+    if (params.maxPrice !== undefined) priceRange.push(`${params.maxPrice} PLN`);
+    parts.push(`(${priceRange.join(' - ')})`);
+  }
+
   if (params.marketplace && params.marketplace !== 'all') {
     parts.push(`on ${params.marketplace.toUpperCase()}`);
   }
@@ -34,21 +39,12 @@ function formatMonitorTitle(params: SearchParams): string {
   return parts.length > 0 ? parts.join(' ') : "All items on all marketplaces";
 }
 
-function formatPriceRange(params: SearchParams): string {
-  if (params.minPrice !== undefined || params.maxPrice !== undefined) {
-    const min = params.minPrice ?? 0;
-    const max = params.maxPrice ?? '∞';
-    return `${min} - ${max} PLN`;
-  }
-  return '';
-}
-
 function formatUpdateFrequency(seconds: number): string {
   if (seconds < 60) {
-    return `${seconds}s`;
+    return `Updates every ${seconds} seconds`;
   }
   const minutes = Math.floor(seconds / 60);
-  return `${minutes}m`;
+  return `Updates every ${minutes} minute${minutes > 1 ? 's' : ''}`;
 }
 
 export default function Monitor() {
@@ -64,42 +60,6 @@ export default function Monitor() {
   });
   const { toast } = useToast();
   const { user } = useAuth();
-  const { isConnected, isConnecting } = useWebSocket({
-    onMessage: (data) => {
-      if (typeof data === 'object' && data !== null && 'type' in data) {
-        switch (data.type) {
-          case 'new_monitored_products': {
-            const update = data as { type: string; products: Product[]; monitorId: string };
-            if (update.monitorId && monitors.find(m => m.id === update.monitorId)) {
-              const uniqueProducts = update.products.filter(isProductUnique);
-              if (uniqueProducts.length > 0) {
-                updateMonitorProducts(update.monitorId, uniqueProducts);
-                toast({
-                  title: 'New Products Found!',
-                  description: `Found ${uniqueProducts.length} new items matching your criteria.`,
-                });
-              }
-            }
-            break;
-          }
-          case 'new_product': {
-            const update = data as { type: string; product: Product };
-            if (isProductUnique(update.product)) {
-              setMonitors(prev => prev.map(monitor => ({
-                ...monitor,
-                products: [update.product, ...monitor.products]
-              })));
-              toast({
-                title: 'New Product',
-                description: `${update.product.title} was just listed!`,
-              });
-            }
-            break;
-          }
-        }
-      }
-    }
-  });
 
   useEffect(() => {
     const loadMonitors = async () => {
@@ -107,7 +67,9 @@ export default function Monitor() {
         setIsLoading(true);
         const res = await apiRequest("GET", "/api/monitors");
         const data = await res.json();
+        console.log("Loaded monitors:", data);
 
+        // Filter out deleted monitors when setting initial state
         const activeMonitors = data
           .filter((monitor: any) => !deletedMonitorIds.current.has(monitor.id.toString()))
           .map((monitor: any) => ({
@@ -137,6 +99,7 @@ export default function Monitor() {
 
   const startNewMonitor = async () => {
     try {
+      console.log("Starting monitor with params:", searchParams);
       const res = await apiRequest("POST", "/api/monitor/start", searchParams);
       const data = await res.json();
 
@@ -167,11 +130,13 @@ export default function Monitor() {
 
   const stopMonitor = async (monitorId: string) => {
     try {
+      console.log("Stopping monitor:", monitorId);
       await apiRequest("POST", "/api/monitor/stop", { monitorId });
 
+      // Add to deleted monitors set
       deletedMonitorIds.current.add(monitorId);
-      localStorage.setItem('deletedMonitorIds', JSON.stringify([...deletedMonitorIds.current]));
 
+      // Remove from state
       setMonitors(prev => prev.filter(m => m.id !== monitorId));
 
       toast({
@@ -190,11 +155,15 @@ export default function Monitor() {
   };
 
   const updateMonitorProducts = (monitorId: string, newProducts: Product[]) => {
-    setMonitors(prev => prev.map(monitor =>
-      monitor.id === monitorId
-        ? { ...monitor, products: [...newProducts, ...monitor.products] }
-        : monitor
-    ));
+    // Only update if monitor hasn't been deleted
+    if (!deletedMonitorIds.current.has(monitorId)) {
+      console.log("Updating products for monitor", monitorId, "with", newProducts);
+      setMonitors(prev => prev.map(monitor =>
+        monitor.id === monitorId
+          ? { ...monitor, products: [...newProducts, ...monitor.products] }
+          : monitor
+      ));
+    }
   };
 
   if (isLoading) {
@@ -237,35 +206,28 @@ export default function Monitor() {
                   {monitors.map((monitor) => (
                     <div key={monitor.id} className="group bg-[#241b35] rounded-lg border border-purple-700/30 shadow-sm hover:border-primary/20 hover:shadow-md transition-all">
                       <div className="p-6">
-                        <div className="flex items-center justify-between">
-                          <div className="flex-1 min-w-0">
-                            <div className="flex items-center gap-3">
-                              <h3 className="text-lg font-semibold text-primary truncate">
-                                {formatMonitorTitle(monitor.params)}
-                              </h3>
-                              <div className="flex items-center gap-2 text-sm text-gray-400">
-                                {formatPriceRange(monitor.params) && (
-                                  <span className="px-2 py-0.5 rounded-full bg-primary/10 text-primary">
-                                    {formatPriceRange(monitor.params)}
-                                  </span>
-                                )}
-                                <span className="px-2 py-0.5 rounded-full bg-primary/5">
-                                  {formatUpdateFrequency(monitor.params.updateFrequency)}
-                                </span>
-                              </div>
-                            </div>
+                        <div className="flex items-center justify-between mb-6">
+                          <div className="space-y-1">
+                            <h3 className="text-lg font-semibold text-primary">
+                              {formatMonitorTitle(monitor.params)}
+                            </h3>
+                            <p className="text-sm text-gray-400">
+                              {formatUpdateFrequency(monitor.params.updateFrequency)}
+                            </p>
+                            {(monitor.params.minPrice !== undefined || monitor.params.maxPrice !== undefined) && (
+                              <p className="text-sm text-gray-400">
+                                Price range: {monitor.params.minPrice || 0} - {monitor.params.maxPrice || '∞'} PLN
+                              </p>
+                            )}
                           </div>
-                          <div className="flex items-center gap-2">
-                            <ConnectionStatus isConnected={isConnected} isConnecting={isConnecting} />
-                            <Button
-                              variant="ghost"
-                              size="icon"
-                              onClick={() => stopMonitor(monitor.id)}
-                              className="opacity-0 group-hover:opacity-100 hover:bg-destructive/10 hover:text-destructive transition-opacity"
-                            >
-                              <X className="h-4 w-4" />
-                            </Button>
-                          </div>
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            onClick={() => stopMonitor(monitor.id)}
+                            className="opacity-0 group-hover:opacity-100 hover:bg-destructive/10 hover:text-destructive transition-opacity"
+                          >
+                            <X className="h-4 w-4" />
+                          </Button>
                         </div>
 
                         <ProductGrid
@@ -313,8 +275,4 @@ export default function Monitor() {
       </main>
     </div>
   );
-}
-
-function isProductUnique(product: Product): boolean {
-  return true;
 }
