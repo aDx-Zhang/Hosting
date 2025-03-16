@@ -1,9 +1,11 @@
 import { Router } from "express";
 import { authService } from "../services/auth";
-import { loginSchema } from "@shared/schema";
+import { loginSchema, apiKeySchema } from "@shared/schema";
 import { log } from "../vite";
 import { db } from '../db';
-import { users as usersTable } from '@shared/schema';
+import { users as usersTable, apiKeys as apiKeysTable } from '@shared/schema';
+import { eq, and, gte } from "drizzle-orm";
+import { nanoid } from "nanoid";
 
 declare module "express-session" {
   interface SessionData {
@@ -28,6 +30,26 @@ router.post("/login", async (req, res) => {
         error: "Invalid credentials",
         message: "The username or password you entered is incorrect."
       });
+    }
+
+    // Check if user's API key is valid
+    if (user.role !== 'admin') {
+      const [activeKey] = await db.select()
+        .from(apiKeysTable)
+        .where(
+          and(
+            eq(apiKeysTable.userId, user.id),
+            eq(apiKeysTable.active, 1),
+            gte(apiKeysTable.expiresAt, new Date())
+          )
+        );
+
+      if (!activeKey) {
+        return res.status(403).json({
+          error: "Subscription expired",
+          message: "Your subscription has expired. Please contact an administrator."
+        });
+      }
     }
 
     // Set up session
@@ -84,7 +106,7 @@ router.post("/logout", (req, res) => {
   });
 });
 
-// Added route for fetching users
+// Get all users (admin only)
 router.get("/users", async (req, res) => {
   // Check if user is admin
   if (!req.session.userId) {
@@ -102,6 +124,59 @@ router.get("/users", async (req, res) => {
   } catch (error) {
     log(`Error fetching users: ${error}`);
     res.status(500).json({ error: "Failed to fetch users" });
+  }
+});
+
+// Generate API key (admin only)
+router.post("/generate-key", async (req, res) => {
+  if (!req.session.userId) {
+    return res.status(401).json({ error: "Not authenticated" });
+  }
+
+  const isAdmin = await authService.isAdmin(req.session.userId);
+  if (!isAdmin) {
+    return res.status(403).json({ error: "Not authorized" });
+  }
+
+  try {
+    const { durationDays } = apiKeySchema.parse(req.body);
+    const key = nanoid(32);
+    const expiresAt = new Date();
+    expiresAt.setDate(expiresAt.getDate() + durationDays);
+
+    const [apiKey] = await db.insert(apiKeysTable)
+      .values({
+        key,
+        userId: req.session.userId,
+        expiresAt,
+        active: 1
+      })
+      .returning();
+
+    res.json(apiKey);
+  } catch (error) {
+    log(`Error generating API key: ${error}`);
+    res.status(500).json({ error: "Failed to generate API key" });
+  }
+});
+
+// Get all API keys (admin only)
+router.get("/api-keys", async (req, res) => {
+  if (!req.session.userId) {
+    return res.status(401).json({ error: "Not authenticated" });
+  }
+
+  const isAdmin = await authService.isAdmin(req.session.userId);
+  if (!isAdmin) {
+    return res.status(403).json({ error: "Not authorized" });
+  }
+
+  try {
+    const keys = await db.select().from(apiKeysTable);
+    res.json(keys);
+  } catch (error) {
+    log(`Error fetching API keys: ${error}`);
+    res.status(500).json({ error: "Failed to fetch API keys" });
   }
 });
 
