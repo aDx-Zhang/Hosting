@@ -7,49 +7,25 @@ import { users as usersTable, apiKeys as apiKeysTable } from '@shared/schema';
 import { eq, and } from "drizzle-orm";
 import { nanoid } from "nanoid";
 import { hash } from '../utils/hash';
-import * as z from 'zod';
 
 const router = Router();
 
-// Login endpoint with enhanced error handling
+// Login endpoint
 router.post("/login", async (req, res) => {
   try {
-    // Validate request body
     const validatedData = loginSchema.parse(req.body);
-    log(`Login attempt received for user: ${validatedData.username}`);
+    log(`Login attempt for user: ${validatedData.username}`);
 
     const user = await authService.validateUser(validatedData.username, validatedData.password);
 
     if (!user) {
-      log(`Login failed - invalid credentials for user: ${validatedData.username}`);
       return res.status(401).json({ 
-        error: "Invalid credentials",
-        message: "The username or password you entered is incorrect."
+        error: "Invalid credentials" 
       });
-    }
-
-    // Check if user's API key is valid
-    if (user.role !== 'admin') {
-      const [activeKey] = await db.select()
-        .from(apiKeysTable)
-        .where(
-          and(
-            eq(apiKeysTable.userId, user.id),
-            eq(apiKeysTable.active, 1)
-          )
-        );
-
-      if (!activeKey) {
-        return res.status(403).json({
-          error: "Subscription expired",
-          message: "Your subscription has expired. Please contact an administrator."
-        });
-      }
     }
 
     // Set up session
     req.session.userId = user.id;
-    log(`Login successful for user: ${validatedData.username}`);
 
     res.json({ 
       success: true,
@@ -61,10 +37,7 @@ router.post("/login", async (req, res) => {
     });
   } catch (error) {
     log(`Login error: ${error}`);
-    res.status(400).json({ 
-      error: "Invalid request",
-      message: "Please check your input and try again."
-    });
+    res.status(400).json({ error: "Invalid request" });
   }
 });
 
@@ -137,19 +110,19 @@ router.post("/generate-key", async (req, res) => {
     const { durationDays } = apiKeySchema.parse(req.body);
     const key = nanoid(32);
 
-    log(`Generating API key with duration: ${durationDays} days`);
+    log(`Generating new API key with ${durationDays} days duration`);
 
     const [apiKey] = await db.insert(apiKeysTable)
       .values({
         key,
-        userId: null, // Will be set when key is used
-        expiresAt: null, // Will be set when key is used
+        durationDays,
         active: 1,
-        durationDays // Store the duration for later use
+        userId: null,
+        expiresAt: null
       })
       .returning();
 
-    log(`Successfully generated API key: ${key}`);
+    log(`Generated API key: ${key}`);
     res.json(apiKey);
   } catch (error) {
     log(`Error generating API key: ${error}`);
@@ -157,98 +130,24 @@ router.post("/generate-key", async (req, res) => {
   }
 });
 
-// Add API key to existing user account
-router.post("/add-key", async (req, res) => {
-  if (!req.session.userId) {
-    return res.status(401).json({ error: "Not authenticated" });
-  }
-
-  try {
-    const { apiKey } = z.object({ apiKey: z.string() }).parse(req.body);
-
-    // Find and validate the API key
-    const [key] = await db.select()
-      .from(apiKeysTable)
-      .where(
-        and(
-          eq(apiKeysTable.key, apiKey),
-          eq(apiKeysTable.active, 1),
-          eq(apiKeysTable.userId, null)
-        )
-      );
-
-    if (!key) {
-      return res.status(400).json({
-        error: "Invalid API key",
-        message: "The provided API key is invalid or has already been used"
-      });
-    }
-
-    // Set expiration date based on stored duration
-    const expiresAt = new Date();
-    expiresAt.setDate(expiresAt.getDate() + key.durationDays);
-
-    // Update the API key with user ID and expiration
-    await db.update(apiKeysTable)
-      .set({
-        userId: req.session.userId,
-        expiresAt
-      })
-      .where(eq(apiKeysTable.key, apiKey));
-
-    res.json({
-      success: true,
-      expiresAt
-    });
-  } catch (error) {
-    log(`Error adding API key: ${error}`);
-    res.status(400).json({
-      error: "Invalid request",
-      message: "Please check your input and try again"
-    });
-  }
-});
-
-
-// Get all API keys (admin only)
-router.get("/api-keys", async (req, res) => {
-  if (!req.session.userId) {
-    return res.status(401).json({ error: "Not authenticated" });
-  }
-
-  const isAdmin = await authService.isAdmin(req.session.userId);
-  if (!isAdmin) {
-    return res.status(403).json({ error: "Not authorized" });
-  }
-
-  try {
-    const keys = await db.select().from(apiKeysTable);
-    res.json(keys);
-  } catch (error) {
-    log(`Error fetching API keys: ${error}`);
-    res.status(500).json({ error: "Failed to fetch API keys" });
-  }
-});
-
-// Registration route with updated API key validation
+// Register new user
 router.post("/register", async (req, res) => {
   try {
     const { username, password, apiKey } = registerSchema.parse(req.body);
+    log(`Registration attempt with API key: ${apiKey}`);
 
-    // Check if username already exists
+    // Check username
     const existingUser = await db.select()
       .from(usersTable)
       .where(eq(usersTable.username, username));
 
     if (existingUser.length > 0) {
       return res.status(400).json({
-        error: "Username already exists",
-        message: "Please choose a different username"
+        error: "Username already exists"
       });
     }
 
-    // Find and validate the API key
-    log(`Checking API key: ${apiKey}`);
+    // Validate API key
     const [key] = await db.select()
       .from(apiKeysTable)
       .where(
@@ -262,8 +161,7 @@ router.post("/register", async (req, res) => {
     if (!key) {
       log('API key validation failed');
       return res.status(400).json({
-        error: "Invalid API key",
-        message: "The provided API key is invalid or has already been used"
+        error: "Invalid or already used API key"
       });
     }
 
@@ -279,17 +177,16 @@ router.post("/register", async (req, res) => {
       })
       .returning();
 
-    // Set expiration date based on stored duration
+    // Update API key with expiration
     const expiresAt = new Date();
     expiresAt.setDate(expiresAt.getDate() + key.durationDays);
 
-    // Update API key with user ID and expiration
     await db.update(apiKeysTable)
       .set({
         userId: user.id,
-        expiresAt
+        expiresAt: expiresAt
       })
-      .where(eq(apiKeysTable.key, apiKey));
+      .where(eq(apiKeysTable.id, key.id));
 
     // Set up session
     req.session.userId = user.id;
@@ -303,15 +200,12 @@ router.post("/register", async (req, res) => {
       }
     });
   } catch (error) {
-    console.error('Registration error:', error);
-    res.status(400).json({
-      error: "Invalid request",
-      message: "Please check your input and try again"
-    });
+    log(`Registration error: ${error}`);
+    res.status(400).json({ error: "Registration failed" });
   }
 });
 
-// Add delete API key endpoint
+// Delete API key (admin only)
 router.delete("/api-keys/:id", async (req, res) => {
   if (!req.session.userId) {
     return res.status(401).json({ error: "Not authenticated" });
@@ -331,6 +225,26 @@ router.delete("/api-keys/:id", async (req, res) => {
   } catch (error) {
     log(`Error deleting API key: ${error}`);
     res.status(500).json({ error: "Failed to delete API key" });
+  }
+});
+
+// Get all API keys (admin only)
+router.get("/api-keys", async (req, res) => {
+  if (!req.session.userId) {
+    return res.status(401).json({ error: "Not authenticated" });
+  }
+
+  const isAdmin = await authService.isAdmin(req.session.userId);
+  if (!isAdmin) {
+    return res.status(403).json({ error: "Not authorized" });
+  }
+
+  try {
+    const keys = await db.select().from(apiKeysTable);
+    res.json(keys);
+  } catch (error) {
+    log(`Error fetching API keys: ${error}`);
+    res.status(500).json({ error: "Failed to fetch API keys" });
   }
 });
 

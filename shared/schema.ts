@@ -1,4 +1,4 @@
-import { pgTable, text, serial, integer, doublePrecision, timestamp, jsonb } from "drizzle-orm/pg-core";
+import { pgTable, text, serial, integer, timestamp } from "drizzle-orm/pg-core";
 import { createInsertSchema } from "drizzle-zod";
 import { z } from "zod";
 
@@ -7,7 +7,7 @@ export const products = pgTable("products", {
   id: serial("id").primaryKey(),
   title: text("title").notNull(),
   description: text("description").notNull(),
-  price: doublePrecision("price").notNull(),
+  price: text("price").notNull(),
   image: text("image").notNull(),
   marketplace: text("marketplace").notNull(),
   originalUrl: text("original_url").notNull(),
@@ -17,7 +17,7 @@ export const products = pgTable("products", {
 export const monitors = pgTable("monitors", {
   id: serial("id").primaryKey(),
   createdAt: timestamp("created_at").defaultNow().notNull(),
-  params: jsonb("params").notNull().$type<SearchParams>(),
+  params: text("params").notNull().$type<SearchParams>(),
   lastCheckedAt: timestamp("last_checked_at"),
   active: integer("active").default(1),
   updateFrequency: integer("update_frequency").default(30).notNull(),
@@ -43,8 +43,8 @@ export const users = pgTable("users", {
 export const apiKeys = pgTable("api_keys", {
   id: serial("id").primaryKey(),
   key: text("key").notNull().unique(),
-  userId: integer("user_id"), // Remove .notNull()
-  expiresAt: timestamp("expires_at"), // Remove .notNull()
+  userId: integer("user_id"),
+  expiresAt: timestamp("expires_at"),
   createdAt: timestamp("created_at").defaultNow().notNull(),
   active: integer("active").default(1),
   durationDays: integer("duration_days").notNull(),
@@ -76,7 +76,7 @@ export const loginSchema = z.object({
 export const registerSchema = z.object({
   username: z.string().min(3),
   password: z.string().min(6),
-  apiKey: z.string().min(1), // Remove strict length validation
+  apiKey: z.string().min(1),
 });
 
 export const apiKeySchema = z.object({
