@@ -8,12 +8,12 @@ import { log } from "./vite";
 import { monitoringService } from "./services/monitor";
 import { authRouter } from "./routes/auth";
 
-// Send ping to keep connections alive
 function heartbeat(this: WebSocket & { isAlive?: boolean }) {
   this.isAlive = true;
 }
 
-// Broadcast updates to all connected clients
+let wss: WebSocketServer;
+
 export function broadcastUpdate(data: unknown) {
   if (!wss) return;
   const message = JSON.stringify(data);
@@ -23,8 +23,6 @@ export function broadcastUpdate(data: unknown) {
     }
   });
 }
-
-let wss: WebSocketServer;
 
 export async function registerRoutes(app: Express) {
   app.use("/api/auth", authRouter);
@@ -74,28 +72,24 @@ export async function registerRoutes(app: Express) {
 
   const httpServer = createServer(app);
 
-  // Initialize WebSocket server
+  // Basic WebSocket server configuration
   wss = new WebSocketServer({ 
     server: httpServer,
     path: '/ws'
   });
 
-  function noop() {}
-
-  // Keep alive check interval
   const interval = setInterval(() => {
     wss.clients.forEach((ws: WebSocket & { isAlive?: boolean }) => {
-      if (ws.isAlive === false) {
-        return ws.terminate();
-      }
+      if (ws.isAlive === false) return ws.terminate();
       ws.isAlive = false;
-      ws.ping(noop);
+      ws.ping();
     });
   }, 30000);
 
   wss.on('connection', (ws: WebSocket & { isAlive?: boolean }) => {
     log('New WebSocket client connected');
     ws.isAlive = true;
+
     ws.on('pong', heartbeat);
 
     ws.send(JSON.stringify({ 

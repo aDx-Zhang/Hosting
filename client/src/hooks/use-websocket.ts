@@ -28,12 +28,13 @@ export function useWebSocket({ onMessage }: WebSocketHookOptions = {}) {
       }
 
       const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
-      const wsUrl = `${protocol}//${window.location.host}/ws`;
+      const host = window.location.host;
+      const wsUrl = `${protocol}//${host}/ws`;
+
       const ws = new WebSocket(wsUrl);
       socket.current = ws;
 
       ws.onopen = () => {
-        console.log('WebSocket connected');
         setIsConnected(true);
         setIsConnecting(false);
         reconnectAttempt.current = 0;
@@ -59,7 +60,6 @@ export function useWebSocket({ onMessage }: WebSocketHookOptions = {}) {
       };
 
       ws.onclose = () => {
-        console.log('WebSocket disconnected');
         setIsConnected(false);
         setIsConnecting(false);
         socket.current = null;
@@ -73,9 +73,7 @@ export function useWebSocket({ onMessage }: WebSocketHookOptions = {}) {
           }
 
           reconnectTimeoutRef.current = setTimeout(() => {
-            if (!isConnected && !isConnecting) {
-              connect();
-            }
+            connect();
           }, backoffTime);
         } else {
           toast({
@@ -90,7 +88,7 @@ export function useWebSocket({ onMessage }: WebSocketHookOptions = {}) {
       setIsConnected(false);
       setIsConnecting(false);
     }
-  }, [onMessage, toast, isConnected, isConnecting]);
+  }, [onMessage, toast]);
 
   useEffect(() => {
     connect();
