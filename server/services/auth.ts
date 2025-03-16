@@ -8,7 +8,9 @@ const SALT_ROUNDS = 10;
 export class AuthService {
   async createUser(username: string, password: string, role: "admin" | "user" = "user"): Promise<User> {
     const hashedPassword = await hash(password, SALT_ROUNDS);
-    console.log(`Creating user ${username} with hash ${hashedPassword}`);
+    console.log(`Creating user ${username} with role ${role}`);
+
+    // Create user with hashed password
     const [user] = await db.insert(users)
       .values({
         username,
@@ -16,21 +18,27 @@ export class AuthService {
         role
       })
       .returning();
+
     return user;
   }
 
   async validateUser(username: string, password: string): Promise<User | null> {
     try {
-      const [user] = await db.select().from(users).where(eq(users.username, username));
+      // Find user by username
+      const [user] = await db.select()
+        .from(users)
+        .where(eq(users.username, username));
+
       if (!user) {
         console.log(`No user found with username: ${username}`);
         return null;
       }
 
+      // Compare password
       console.log(`Found user ${username}, comparing passwords...`);
-      console.log(`Stored hash: ${user.password}`);
       const isValid = await compare(password, user.password);
       console.log(`Password validation result for ${username}: ${isValid}`);
+
       return isValid ? user : null;
     } catch (error) {
       console.error('Error validating user:', error);

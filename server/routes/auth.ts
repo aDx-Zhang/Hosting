@@ -11,6 +11,37 @@ declare module "express-session" {
 
 const router = Router();
 
+// Login endpoint with enhanced error handling
+router.post("/login", async (req, res) => {
+  try {
+    log('Login attempt received');
+    const { username, password } = loginSchema.parse(req.body);
+    log(`Attempting to validate user: ${username}`);
+
+    const user = await authService.validateUser(username, password);
+
+    if (!user) {
+      log(`Login failed for user: ${username}`);
+      return res.status(401).json({ error: "Invalid credentials" });
+    }
+
+    req.session.userId = user.id;
+    log(`Login successful for user: ${username}`);
+
+    res.json({ 
+      success: true, 
+      user: { 
+        id: user.id, 
+        username: user.username, 
+        role: user.role 
+      } 
+    });
+  } catch (error) {
+    log(`Login error: ${error}`);
+    res.status(400).json({ error: "Invalid login data" });
+  }
+});
+
 // Register new user (admin only)
 router.post("/register", async (req, res) => {
   try {
@@ -27,31 +58,6 @@ router.post("/register", async (req, res) => {
   } catch (error) {
     log(`Registration error: ${error}`);
     res.status(400).json({ error: "Invalid registration data" });
-  }
-});
-
-// Login
-router.post("/login", async (req, res) => {
-  try {
-    const { username, password } = loginSchema.parse(req.body);
-    const user = await authService.validateUser(username, password);
-
-    if (!user) {
-      return res.status(401).json({ error: "Invalid credentials" });
-    }
-
-    req.session.userId = user.id;
-    res.json({ 
-      success: true, 
-      user: { 
-        id: user.id, 
-        username: user.username, 
-        role: user.role 
-      } 
-    });
-  } catch (error) {
-    log(`Login error: ${error}`);
-    res.status(400).json({ error: "Invalid login data" });
   }
 });
 
