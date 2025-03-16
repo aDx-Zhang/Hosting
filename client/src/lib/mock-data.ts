@@ -4,7 +4,7 @@ export const mockProducts: InsertProduct[] = [
   {
     title: "iPhone 13 Mini, stan bardzo dobry",
     description: "Sprzedam iPhone 13 Mini 128GB w kolorze czarnym, bateria 89%, komplet akcesoriów",
-    price: 999.99,
+    price: "999.99",
     image: "https://images.unsplash.com/photo-1605236453806-6ff36851218e",
     marketplace: "olx",
     originalUrl: "https://olx.pl/iphone-13",
@@ -14,7 +14,7 @@ export const mockProducts: InsertProduct[] = [
   {
     title: "iPhone SE 2020 używany",
     description: "iPhone SE 2020 64GB, kolor biały, stan dobry, bez blokad",
-    price: 599.99,
+    price: "599.99",
     image: "https://images.unsplash.com/photo-1592286927505-1def25115558",
     marketplace: "allegro",
     originalUrl: "https://allegrolokalnie.pl/iphone-se",
@@ -24,7 +24,7 @@ export const mockProducts: InsertProduct[] = [
   {
     title: "iPhone 12 Pro Max okazja",
     description: "Sprzedam iPhone 12 Pro Max 256GB Pacific Blue, stan idealny",
-    price: 899.00,
+    price: "899.00",
     image: "https://images.unsplash.com/photo-1603891128711-11b4b03bb138",
     marketplace: "vinted",
     originalUrl: "https://vinted.pl/iphone-12",
@@ -34,7 +34,7 @@ export const mockProducts: InsertProduct[] = [
   {
     title: "iPhone XR, gwarancja",
     description: "iPhone XR 128GB czerwony, 3 miesiące gwarancji",
-    price: 450.00,
+    price: "450.00",
     image: "https://images.unsplash.com/photo-1572635148818-ef6fd45eb394",
     marketplace: "olx",
     originalUrl: "https://olx.pl/iphone-xr",
@@ -44,7 +44,7 @@ export const mockProducts: InsertProduct[] = [
   {
     title: "iPhone 11 jak nowy",
     description: "iPhone 11 64GB czarny, stan jak nowy, pełny zestaw",
-    price: 749.99,
+    price: "749.99",
     image: "https://images.unsplash.com/photo-1592950630581-03cb41536b88",
     marketplace: "allegro",
     originalUrl: "https://allegrolokalnie.pl/iphone-11",

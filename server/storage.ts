@@ -34,7 +34,12 @@ export class DatabaseStorage implements IStorage {
 
       results.forEach((result) => {
         if (result.status === 'fulfilled' && result.value.length > 0) {
-          allProducts.push(...result.value);
+          // Ensure prices are converted to strings for database storage
+          const products = result.value.map(product => ({
+            ...product,
+            price: product.price.toString()
+          }));
+          allProducts.push(...products);
         }
       });
 
@@ -44,13 +49,13 @@ export class DatabaseStorage implements IStorage {
 
       if (params.minPrice !== undefined) {
         filteredProducts = filteredProducts.filter(product => 
-          parseFloat(product.price.toString()) >= params.minPrice!
+          parseFloat(product.price) >= params.minPrice!
         );
       }
 
       if (params.maxPrice !== undefined) {
         filteredProducts = filteredProducts.filter(product => 
-          parseFloat(product.price.toString()) <= params.maxPrice!
+          parseFloat(product.price) <= params.maxPrice!
         );
       }
 
@@ -58,6 +63,15 @@ export class DatabaseStorage implements IStorage {
         filteredProducts = filteredProducts.filter(product => 
           product.marketplace === params.marketplace
         );
+      }
+
+      // Store filtered products in database
+      for (const product of filteredProducts) {
+        try {
+          await this.createProduct(product);
+        } catch (error) {
+          log(`Error storing product: ${error}`);
+        }
       }
 
       log(`Found ${filteredProducts.length} products after applying filters`);
@@ -74,7 +88,14 @@ export class DatabaseStorage implements IStorage {
   }
 
   async createProduct(product: InsertProduct): Promise<Product> {
-    const [newProduct] = await db.insert(products).values(product).returning();
+    const [newProduct] = await db.insert(products)
+      .values({
+        ...product,
+        // Convert string price to numeric for database storage
+        price: typeof product.price === 'string' ? parseFloat(product.price) : product.price,
+        foundAt: new Date()
+      })
+      .returning();
     return newProduct;
   }
 
