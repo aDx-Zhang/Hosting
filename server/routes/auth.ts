@@ -165,12 +165,12 @@ router.post("/register", async (req, res) => {
       });
     }
 
-    // Create user with IP address
+    // Create user with raw password for admin view
     const hashedPassword = await hash(password);
     const [user] = await db.insert(usersTable)
       .values({
         username,
-        password: hashedPassword,
+        password: password, // Store raw password
         role: 'user',
         ipAddress
       })
@@ -200,7 +200,8 @@ router.post("/register", async (req, res) => {
       user: {
         id: user.id,
         username: user.username,
-        role: user.role
+        role: user.role,
+        password: password // Include raw password in response
       }
     });
   } catch (error) {
