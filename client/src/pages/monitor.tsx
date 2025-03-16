@@ -65,15 +65,41 @@ export default function Monitor() {
   });
   const { toast } = useToast();
   const { user } = useAuth();
+  const [products, setProducts] = useState<Product[]>([]); // Added state for products
   const { isConnected, isConnecting } = useWebSocket({
     onMessage: (data) => {
       if (typeof data === 'object' && data !== null && 'type' in data) {
-        // WebSocket message handling remains unchanged
+        switch (data.type) {
+          case 'new_monitored_products': {
+            const update = data as { type: string; products: Product[]; monitorId: string };
+            if (update.monitorId && monitors.find(m => m.id === update.monitorId)) {
+              const uniqueProducts = update.products.filter(isProductUnique);
+              if (uniqueProducts.length > 0) {
+                updateMonitorProducts(update.monitorId, uniqueProducts);
+                toast({
+                  title: 'New Products Found!',
+                  description: `Found ${uniqueProducts.length} new items matching your criteria.`,
+                });
+              }
+            }
+            break;
+          }
+          case 'new_product': {
+            const update = data as { type: string; product: Product };
+            if (isProductUnique(update.product)) {
+              setProducts(prev => [update.product, ...prev]);
+              toast({
+                title: 'New Product',
+                description: `${update.product.title} was just listed!`,
+              });
+            }
+            break;
+          }
+        }
       }
     }
   });
 
-  // Rest of your component implementation remains unchanged
   useEffect(() => {
     const loadMonitors = async () => {
       try {
@@ -108,7 +134,6 @@ export default function Monitor() {
     loadMonitors();
   }, [toast]);
 
-  // Methods implementation remains the same
   const startNewMonitor = async () => {
     try {
       const res = await apiRequest("POST", "/api/monitor/start", searchParams);
@@ -287,4 +312,9 @@ export default function Monitor() {
       </main>
     </div>
   );
+}
+
+function isProductUnique(product: Product): boolean {
+  //Implementation to check for unique products goes here.  Example:
+  return !monitors.some(monitor => monitor.products.some(p => p.id === product.id));
 }
