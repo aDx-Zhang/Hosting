@@ -56,10 +56,15 @@ export function ProductGrid({
     }
   }, [toast, monitorId, onNewProducts]);
 
-  useWebSocket({ onMessage: isMonitoring ? handleRealTimeUpdate : undefined });
+  const { isConnected } = useWebSocket({ onMessage: isMonitoring ? handleRealTimeUpdate : undefined });
 
-  // Use the products from state instead of props
-  const displayProducts = products.length > 0 ? products : initialProducts;
+  if (!isConnected && isMonitoring) {
+    return (
+      <div className="text-center py-8">
+        <p className="text-destructive">Connecting to real-time updates...</p>
+      </div>
+    );
+  }
 
   if (isLoading) {
     return (
@@ -76,6 +81,9 @@ export function ProductGrid({
       </div>
     );
   }
+
+  // Use the products from state instead of props
+  const displayProducts = products.length > 0 ? products : initialProducts;
 
   if (displayProducts.length === 0) {
     return (
