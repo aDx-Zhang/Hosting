@@ -11,7 +11,6 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useAuth } from "@/hooks/use-auth";
 import { LoadingIndicator } from "@/components/ui/loading-indicator";
 import { useWebSocket } from "@/hooks/use-websocket";
-import { ConnectionStatus } from "@/components/connection-status";
 
 interface Monitor {
   id: string;
@@ -51,7 +50,6 @@ function formatUpdateFrequency(seconds: number): string {
   return `${minutes}m`;
 }
 
-
 export default function Monitor() {
   const [monitors, setMonitors] = useState<Monitor[]>([]);
   const [isLoading, setIsLoading] = useState(true);
@@ -68,7 +66,7 @@ export default function Monitor() {
   const { isConnected, isConnecting } = useWebSocket({
     onMessage: (data) => {
       if (typeof data === 'object' && data !== null && 'type' in data) {
-        //Existing WebSocket message handling remains unchanged
+        // WebSocket message handling remains unchanged
       }
     }
   });
@@ -230,7 +228,6 @@ export default function Monitor() {
                         <div className="flex items-center justify-between">
                           <div className="flex-1 min-w-0">
                             <div className="flex items-center gap-3 mb-2">
-                              <ConnectionStatus isConnected={isConnected} isConnecting={isConnecting} />
                               <div className="flex items-center gap-2 text-sm text-gray-400">
                                 {formatPriceRange(monitor.params) && (
                                   <span className="px-2 py-0.5 rounded-full bg-primary/10 text-primary">
@@ -239,6 +236,15 @@ export default function Monitor() {
                                 )}
                                 <span className="px-2 py-0.5 rounded-full bg-primary/5">
                                   {formatUpdateFrequency(monitor.params.updateFrequency)}
+                                </span>
+                                <span className={`px-2 py-0.5 rounded-full ${
+                                  isConnected 
+                                    ? 'bg-emerald-500/10 text-emerald-500' 
+                                    : isConnecting 
+                                    ? 'bg-yellow-500/10 text-yellow-500' 
+                                    : 'bg-destructive/10 text-destructive'
+                                }`}>
+                                  {isConnected ? 'connected' : isConnecting ? 'connecting...' : 'disconnected'}
                                 </span>
                               </div>
                             </div>
