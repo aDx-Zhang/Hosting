@@ -34,8 +34,12 @@ export class AuthService {
         return null;
       }
 
+      // Log the received password for debugging
+      console.log(`Validating user ${username}`);
+      console.log(`Received password length: ${password.length}`);
+      console.log(`Stored hash: ${user.password}`);
+
       // Compare password
-      console.log(`Found user ${username}, comparing passwords...`);
       const isValid = await compare(password, user.password);
       console.log(`Password validation result for ${username}: ${isValid}`);
 

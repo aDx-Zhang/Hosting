@@ -3,7 +3,6 @@ import { useLocation } from "wouter";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { loginSchema } from "@shared/schema";
-import { apiRequest } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
 import {
   Form,
@@ -33,6 +32,8 @@ export default function Login() {
   const onSubmit = async (values: { username: string; password: string }) => {
     try {
       setIsLoading(true);
+      console.log('Submitting login form with username:', values.username);
+      console.log('Password length:', values.password.length);
 
       const res = await fetch("/api/auth/login", {
         method: "POST",
@@ -51,6 +52,7 @@ export default function Login() {
         });
         setLocation("/");
       } else {
+        console.error('Login failed:', data.error);
         toast({
           title: "Error",
           description: data.error || "Failed to login. Please check your credentials.",
@@ -58,6 +60,7 @@ export default function Login() {
         });
       }
     } catch (error) {
+      console.error('Login error:', error);
       toast({
         title: "Error",
         description: "Network error. Please try again.",
