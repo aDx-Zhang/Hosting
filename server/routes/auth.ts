@@ -2,6 +2,8 @@ import { Router } from "express";
 import { authService } from "../services/auth";
 import { loginSchema } from "@shared/schema";
 import { log } from "../vite";
+import { db } from '../db';
+import { users as usersTable } from '@shared/schema';
 
 declare module "express-session" {
   interface SessionData {
@@ -50,9 +52,26 @@ router.post("/login", async (req, res) => {
 });
 
 // Check session status
-router.get("/session", (req, res) => {
+router.get("/session", async (req, res) => {
   if (req.session.userId) {
-    res.json({ authenticated: true });
+    try {
+      const user = await authService.getUser(req.session.userId);
+      if (user) {
+        res.json({ 
+          authenticated: true, 
+          user: {
+            id: user.id,
+            username: user.username,
+            role: user.role
+          }
+        });
+      } else {
+        res.status(401).json({ authenticated: false });
+      }
+    } catch (error) {
+      log(`Session check error: ${error}`);
+      res.status(401).json({ authenticated: false });
+    }
   } else {
     res.status(401).json({ authenticated: false });
   }
@@ -63,6 +82,27 @@ router.post("/logout", (req, res) => {
   req.session.destroy(() => {
     res.json({ success: true });
   });
+});
+
+// Added route for fetching users
+router.get("/users", async (req, res) => {
+  // Check if user is admin
+  if (!req.session.userId) {
+    return res.status(401).json({ error: "Not authenticated" });
+  }
+
+  const isAdmin = await authService.isAdmin(req.session.userId);
+  if (!isAdmin) {
+    return res.status(403).json({ error: "Not authorized" });
+  }
+
+  try {
+    const users = await db.select().from(usersTable);
+    res.json(users);
+  } catch (error) {
+    log(`Error fetching users: ${error}`);
+    res.status(500).json({ error: "Failed to fetch users" });
+  }
 });
 
 export { router as authRouter };

@@ -6,10 +6,24 @@ import NotFound from "@/pages/not-found";
 import Home from "@/pages/home";
 import Monitor from "@/pages/monitor";
 import Login from "@/pages/login";
+import AdminPanel from "@/pages/admin-panel";
 import { useState, useEffect } from "react";
 
 function Navigation() {
   const [location] = useLocation();
+  const [isAdmin, setIsAdmin] = useState(false);
+
+  // Check if user is admin
+  useEffect(() => {
+    fetch("/api/auth/session")
+      .then(res => res.json())
+      .then(data => {
+        if (data.user?.role === 'admin') {
+          setIsAdmin(true);
+        }
+      })
+      .catch(() => setIsAdmin(false));
+  }, []);
 
   // Don't show navigation on login page
   if (location === "/login") {
@@ -27,6 +41,11 @@ function Navigation() {
             <Link href="/monitor">
               <a className="text-primary hover:text-primary/80">Monitor</a>
             </Link>
+            {isAdmin && (
+              <Link href="/admin">
+                <a className="text-primary hover:text-primary/80">Admin Panel</a>
+              </Link>
+            )}
           </div>
           <button
             onClick={() => {
@@ -78,6 +97,7 @@ function Router() {
       <Route path="/login" component={Login} />
       <Route path="/" component={() => <ProtectedRoute component={Home} />} />
       <Route path="/monitor" component={() => <ProtectedRoute component={Monitor} />} />
+      <Route path="/admin" component={() => <ProtectedRoute component={AdminPanel} />} />
       <Route component={NotFound} />
     </Switch>
   );
