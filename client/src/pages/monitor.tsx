@@ -9,12 +9,13 @@ import { AlertTriangle, X } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useAuth } from "@/hooks/use-auth";
+import { LoadingIndicator } from "@/components/ui/loading-indicator";
 
 interface Monitor {
   id: string;
   params: SearchParams;
   products: Product[];
-  startTime?: number; // Added startTime property
+  startTime: number;
 }
 
 function formatMonitorTitle(params: SearchParams): string {
@@ -48,6 +49,7 @@ function formatUpdateFrequency(seconds: number): string {
 
 export default function Monitor() {
   const [monitors, setMonitors] = useState<Monitor[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
   const [searchParams, setSearchParams] = useState<SearchParams>({
     query: "",
     marketplace: "all",
@@ -61,24 +63,33 @@ export default function Monitor() {
   useEffect(() => {
     const loadMonitors = async () => {
       try {
+        setIsLoading(true);
         const res = await apiRequest("GET", "/api/monitors");
         const data = await res.json();
         console.log("Loaded monitors:", data);
+
         setMonitors(data.map((monitor: any) => ({
           id: monitor.id.toString(),
           params: typeof monitor.params === 'string'
             ? JSON.parse(monitor.params)
             : monitor.params,
-          products: [], // Start with empty products array
-          startTime: monitor.startTime //add starttime
+          products: [],
+          startTime: Date.parse(monitor.startTime) || Date.now()
         })));
       } catch (error) {
         console.error('Failed to load monitors:', error);
+        toast({
+          title: "Error",
+          description: "Failed to load monitors. Please try again.",
+          variant: "destructive",
+        });
+      } finally {
+        setIsLoading(false);
       }
     };
 
     loadMonitors();
-  }, []);
+  }, [toast]);
 
   const startNewMonitor = async () => {
     try {
@@ -86,12 +97,14 @@ export default function Monitor() {
       const res = await apiRequest("POST", "/api/monitor/start", searchParams);
       const data = await res.json();
 
-      setMonitors(prev => [...prev, {
+      const newMonitor = {
         id: data.monitorId,
         params: searchParams,
-        products: [], // Start with empty products array
-        startTime: Date.now() //add starttime
-      }]);
+        products: [],
+        startTime: Date.now()
+      };
+
+      setMonitors(prev => [...prev, newMonitor]);
 
       toast({
         title: "Monitor Created Successfully!",
@@ -113,6 +126,8 @@ export default function Monitor() {
     try {
       console.log("Stopping monitor:", monitorId);
       await apiRequest("POST", "/api/monitor/stop", { monitorId });
+
+      // Only remove from state after successful API call
       setMonitors(prev => prev.filter(m => m.id !== monitorId));
 
       toast({
@@ -138,6 +153,14 @@ export default function Monitor() {
         : monitor
     ));
   };
+
+  if (isLoading) {
+    return (
+      <div className="min-h-screen bg-[#1a1428] flex items-center justify-center">
+        <LoadingIndicator size="lg" />
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-[#1a1428]">
