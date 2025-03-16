@@ -62,7 +62,6 @@ export default function Login() {
         });
       }
     } catch (error) {
-      console.error('Login error:', error);
       toast({
         title: "Error",
         description: "Network error. Please try again.",
@@ -85,6 +84,8 @@ export default function Login() {
       <div className="absolute inset-0 w-full h-full bg-background/50">
         <div className="absolute inset-0 w-full h-full animate-gradient bg-[length:200%_200%] bg-gradient-to-br from-primary/20 via-primary/5 to-transparent"></div>
       </div>
+
+      <div className="cursor-ripple" />
 
       <Card className="w-full max-w-md bg-card/30 backdrop-blur-xl border-border/50 relative cursor-glow-content">
         <CardHeader className="space-y-4 pb-6">

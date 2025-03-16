@@ -36,6 +36,44 @@
     z-index: 10;
   }
 
+  .cursor-ripple {
+    position: fixed;
+    pointer-events: none;
+    inset: 0;
+    z-index: 0;
+  }
+
+  .cursor-ripple::before,
+  .cursor-ripple::after {
+    content: '';
+    position: absolute;
+    top: var(--cursor-y);
+    left: var(--cursor-x);
+    width: 200px;
+    height: 200px;
+    border-radius: 50%;
+    background: radial-gradient(circle at center, theme('colors.primary.DEFAULT/0.1'), transparent 70%);
+    transform: translate(-50%, -50%);
+    animation: ripple 2s linear infinite;
+  }
+
+  .cursor-ripple::after {
+    animation-delay: 1s;
+  }
+
+  @keyframes ripple {
+    0% {
+      width: 0;
+      height: 0;
+      opacity: 0.5;
+    }
+    100% {
+      width: 500px;
+      height: 500px;
+      opacity: 0;
+    }
+  }
+
   @keyframes gradient {
     0% {
       background-position: 0% 50%;
