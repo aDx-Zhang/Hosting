@@ -95,16 +95,16 @@ export default function UserPanel() {
 
   if (isLoading) {
     return (
-      <div className="flex items-center justify-center min-h-screen bg-gradient-to-br from-background/90 via-background to-background/95">
+      <div className="flex items-center justify-center min-h-screen bg-gradient-to-br from-purple-900/90 via-purple-800/80 to-background/95">
         <Loader2 className="h-8 w-8 animate-spin text-primary" />
       </div>
     );
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-background/90 via-background to-background/95">
+    <div className="min-h-screen bg-gradient-to-br from-purple-900/90 via-purple-800/80 to-background/95">
       <div className="absolute inset-0 bg-grid-white/[0.02] -z-10" />
-      <div className="absolute inset-0 bg-gradient-to-b from-primary/10 via-transparent to-transparent -z-10" />
+      <div className="absolute inset-0 bg-gradient-to-b from-primary/20 via-purple-700/10 to-transparent -z-10" />
 
       <div className="container mx-auto py-8 px-4">
         <div className="flex items-center justify-between mb-8">
@@ -122,7 +122,7 @@ export default function UserPanel() {
         </div>
 
         <div className="grid gap-6">
-          <Card className="overflow-hidden card-shine bg-card/30 backdrop-blur-md supports-[backdrop-filter]:bg-background/40">
+          <Card className="overflow-hidden card-shine bg-purple-900/30 backdrop-blur-md supports-[backdrop-filter]:bg-background/40">
             <CardHeader className="space-y-1">
               <CardTitle className="text-2xl">API Key Time Remaining</CardTitle>
               <CardDescription>
@@ -132,7 +132,7 @@ export default function UserPanel() {
             <CardContent className="space-y-6">
               {subscription ? (
                 <div className="space-y-4">
-                  <div className="flex items-center justify-between p-4 bg-background/20 rounded-lg border border-border/30">
+                  <div className="flex items-center justify-between p-4 bg-purple-800/20 rounded-lg border border-purple-700/30">
                     <div className="flex items-center gap-3">
                       {subscription.active ? (
                         <CheckCircle2 className="h-6 w-6 text-green-500" />
@@ -157,7 +157,7 @@ export default function UserPanel() {
                     )}
                   </div>
 
-                  <div className="p-4 bg-background/20 rounded-lg border border-border/30">
+                  <div className="p-4 bg-purple-800/20 rounded-lg border border-purple-700/30">
                     <div className="flex items-center gap-2 text-sm">
                       <Key className="h-4 w-4 text-primary" />
                       <span className="font-mono">{subscription.key}</span>
@@ -178,7 +178,7 @@ export default function UserPanel() {
             </CardContent>
           </Card>
 
-          <Card className="card-shine bg-card/30 backdrop-blur-md supports-[backdrop-filter]:bg-background/40">
+          <Card className="card-shine bg-purple-900/30 backdrop-blur-md supports-[backdrop-filter]:bg-background/40">
             <CardHeader>
               <CardTitle>Extend Access Time</CardTitle>
               <CardDescription>
@@ -191,7 +191,7 @@ export default function UserPanel() {
                   placeholder="Enter API key"
                   value={apiKey}
                   onChange={(e) => setApiKey(e.target.value)}
-                  className="bg-background/20 border-border/30 animate-input"
+                  className="bg-purple-800/20 border-purple-700/30 animate-input"
                 />
                 <Button
                   onClick={() => apiKey && addKeyMutation.mutate(apiKey)}
