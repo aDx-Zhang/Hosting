@@ -77,8 +77,8 @@ export const registerSchema = loginSchema.extend({
 });
 
 export const apiKeySchema = z.object({
-  userId: z.number(),
   durationDays: z.number().min(1).max(365),
+  userId: z.number().optional(), //Made userId optional
 });
 
 export type User = typeof users.$inferSelect;
