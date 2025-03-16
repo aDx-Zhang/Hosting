@@ -115,9 +115,9 @@ export default function UserPanel() {
       <div className="grid gap-6">
         <Card className="overflow-hidden">
           <CardHeader className="space-y-1">
-            <CardTitle className="text-2xl">Subscription Status</CardTitle>
+            <CardTitle className="text-2xl">API Key Status</CardTitle>
             <CardDescription>
-              Time remaining on your subscription
+              Time remaining on your API key
             </CardDescription>
           </CardHeader>
           <CardContent>
@@ -132,31 +132,31 @@ export default function UserPanel() {
                     )}
                     <div>
                       <div className="font-medium">
-                        {subscription.active ? 'Active Subscription' : 'Expired Subscription'}
+                        {subscription.active ? 'Valid API Key' : 'Expired API Key'}
                       </div>
                       <div className="text-sm text-muted-foreground flex items-center gap-2 mt-1">
                         <Calendar className="h-4 w-4" />
-                        <span>Expires: {new Date(subscription.expiresAt).toLocaleDateString()}</span>
+                        <span>Valid until: {new Date(subscription.expiresAt).toLocaleDateString()}</span>
                       </div>
                     </div>
                   </div>
                   {subscription.active && (
                     <div className="text-2xl font-bold text-primary">
                       {formatTimeLeft(subscription.expiresAt)}
-                      <span className="text-sm text-muted-foreground ml-1">remaining</span>
+                      <span className="text-sm text-muted-foreground ml-1">left</span>
                     </div>
                   )}
                 </div>
 
                 {!subscription.active && (
                   <div className="text-sm text-muted-foreground bg-destructive/5 p-4 rounded-lg border border-destructive/20">
-                    Your subscription has expired. Please add a new API key below to continue using the service.
+                    Your API key has expired. Please enter a new API key below to continue using the service.
                   </div>
                 )}
               </div>
             ) : (
               <div className="text-muted-foreground bg-primary/5 p-4 rounded-lg border border-primary/20">
-                No active subscription found. Add an API key below to get started.
+                No active API key found. Enter your API key below to get started.
               </div>
             )}
           </CardContent>
@@ -164,9 +164,9 @@ export default function UserPanel() {
 
         <Card>
           <CardHeader>
-            <CardTitle>Activate Subscription</CardTitle>
+            <CardTitle>Enter API Key</CardTitle>
             <CardDescription>
-              Enter your API key to activate or extend your subscription
+              Enter your API key to activate or extend your access
             </CardDescription>
           </CardHeader>
           <CardContent>
