@@ -104,11 +104,14 @@ export class DatabaseStorage implements IStorage {
   }
 
   async createMonitor(params: SearchParams, userId: number): Promise<{ id: number }> {
+    const now = new Date();
     const [monitor] = await db.insert(monitors).values({
       params: params,
       active: 1,
       userId,
-      createdAt: new Date()
+      createdAt: now,
+      startTime: now,
+      updateFrequency: params.updateFrequency || 30
     }).returning();
 
     return { id: monitor.id };
