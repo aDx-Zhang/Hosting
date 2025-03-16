@@ -16,13 +16,10 @@ import { LoadingIndicator } from "@/components/ui/loading-indicator";
 import { Button } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
 import { AnimatePresence } from "framer-motion";
-import { ConnectionStatus } from "@/components/connection-status";
-import { useWebSocket } from "@/hooks/use-websocket";
 
 function Navigation() {
   const [location] = useLocation();
   const { user } = useAuth();
-  const { isConnected, isConnecting } = useWebSocket({});
 
   if (location === "/login" || location === "/register" || !user) {
     return null;
@@ -88,10 +85,6 @@ function Navigation() {
             >
               <LogOut className="h-4 w-4" />
             </Button>
-            <Separator orientation="vertical" className="h-6 bg-purple-700/30" />
-            <div className="flex items-center gap-2">
-              <ConnectionStatus isConnected={isConnected} isConnecting={isConnecting} />
-            </div>
           </div>
         </div>
       </div>

@@ -10,6 +10,7 @@ import { useToast } from "@/hooks/use-toast";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useAuth } from "@/hooks/use-auth";
 import { LoadingIndicator } from "@/components/ui/loading-indicator";
+import { useWebSocket } from "@/hooks/use-websocket";
 
 interface Monitor {
   id: string;
@@ -70,6 +71,13 @@ export default function Monitor() {
   });
   const { toast } = useToast();
   const { user } = useAuth();
+  const { isConnected, isConnecting } = useWebSocket({
+    onMessage: (data) => {
+      if (typeof data === 'object' && data !== null && 'type' in data) {
+        //Existing WebSocket message handling remains unchanged
+      }
+    }
+  });
 
   // Load deleted monitor IDs from localStorage on mount
   useEffect(() => {
@@ -243,7 +251,8 @@ export default function Monitor() {
                               </div>
                             </div>
                           </div>
-                          <div className="flex items-center gap-3">
+                          <div className="flex items-center gap-2">
+                            <ConnectionStatus isConnected={isConnected} isConnecting={isConnecting} />
                             <Button
                               variant="ghost"
                               size="icon"
