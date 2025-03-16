@@ -20,7 +20,7 @@ export function useWebSocket({ onMessage }: WebSocketHookOptions = {}) {
     }
 
     try {
-      // Clean up existing socket
+      // Clean up existing socket if any
       if (socket.current) {
         socket.current.close();
         socket.current = null;
@@ -53,7 +53,6 @@ export function useWebSocket({ onMessage }: WebSocketHookOptions = {}) {
 
       ws.onerror = (error) => {
         console.error('WebSocket error:', error);
-        ws.close();
       };
 
       ws.onclose = () => {
@@ -73,7 +72,9 @@ export function useWebSocket({ onMessage }: WebSocketHookOptions = {}) {
 
           // Set up new reconnection attempt
           console.log(`Attempting reconnect in ${backoffTime}ms (attempt ${reconnectAttempt.current})`);
-          reconnectTimeoutRef.current = setTimeout(connect, backoffTime);
+          reconnectTimeoutRef.current = setTimeout(() => {
+            connect();
+          }, backoffTime);
 
           // Only show toast on first disconnect
           if (reconnectAttempt.current === 1) {

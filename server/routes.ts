@@ -1,6 +1,7 @@
-import type { Express } from "express";
-import { createServer } from "http";
+import { Router } from "express";
 import { WebSocketServer, WebSocket } from "ws";
+import { createServer } from "http";
+import type { Express } from "express";
 import { storage } from "./storage";
 import { searchParamsSchema } from "@shared/schema";
 import { log } from "./vite";
@@ -80,7 +81,7 @@ export async function registerRoutes(app: Express) {
   const wss = new WebSocketServer({ 
     server: httpServer, 
     path: '/ws',
-    clientTracking: true, //This line was added
+    clientTracking: true,
     perMessageDeflate: false
   });
 
