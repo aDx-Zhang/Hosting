@@ -23,10 +23,13 @@
     );
     background-size: 400% 400%;
     animation: gradient 15s ease infinite;
+    pointer-events: none;
   }
 
   .animate-input {
     transition: all 0.3s ease;
+    position: relative;
+    z-index: 20;
   }
 
   .animate-input:focus-within {
@@ -38,6 +41,7 @@
     position: relative;
     overflow: hidden;
     transition: all 0.3s ease;
+    z-index: 20;
   }
 
   .animate-button::before {
@@ -54,6 +58,7 @@
       transparent
     );
     transition: 0.5s;
+    pointer-events: none;
   }
 
   .animate-button:hover::before {
@@ -63,6 +68,7 @@
   .card-shine {
     position: relative;
     overflow: hidden;
+    z-index: 20;
   }
 
   .card-shine::before {
@@ -79,6 +85,7 @@
     );
     transform: rotate(45deg);
     animation: shine 20s linear infinite;
+    pointer-events: none;
   }
 
   @keyframes gradient {

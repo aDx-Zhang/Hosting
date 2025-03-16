@@ -69,7 +69,7 @@ export default function Login() {
 
   return (
     <div className="min-h-screen flex items-center justify-center relative overflow-hidden">
-      <div className="absolute inset-0 w-full h-full animate-gradient" />
+      <div className="absolute inset-0 w-full h-full animate-gradient z-0" />
 
       <Card className="w-full max-w-md bg-card/30 backdrop-blur-xl border-border/50 relative z-10 card-shine">
         <CardHeader className="space-y-4 pb-6">
