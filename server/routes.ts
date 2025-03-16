@@ -76,11 +76,12 @@ export async function registerRoutes(app: Express) {
 
   const httpServer = createServer(app);
 
-  // Initialize WebSocket server
+  // Initialize WebSocket server with improved configuration
   const wss = new WebSocketServer({ 
     server: httpServer, 
     path: '/ws',
-    perMessageDeflate: false // Disable per-message deflate to reduce overhead
+    clientTracking: true, //This line was added
+    perMessageDeflate: false
   });
 
   function noop() {}
@@ -92,7 +93,6 @@ export async function registerRoutes(app: Express) {
         clients.delete(ws);
         return ws.terminate();
       }
-
       ws.isAlive = false;
       ws.ping(noop);
     });

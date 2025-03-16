@@ -14,12 +14,13 @@ export function useWebSocket({ onMessage }: WebSocketHookOptions = {}) {
   const reconnectTimeoutRef = useRef<NodeJS.Timeout>();
 
   const connect = useCallback(() => {
+    // Don't try to reconnect if we're already connected
     if (socket.current?.readyState === WebSocket.OPEN) {
-      return; // Already connected
+      return;
     }
 
     try {
-      // Clear any existing socket
+      // Clean up existing socket
       if (socket.current) {
         socket.current.close();
         socket.current = null;
@@ -35,11 +36,6 @@ export function useWebSocket({ onMessage }: WebSocketHookOptions = {}) {
         console.log('WebSocket connected');
         setIsConnected(true);
         reconnectAttempt.current = 0;
-
-        toast({
-          title: 'Connected',
-          description: 'Real-time updates are now active',
-        });
       };
 
       ws.onmessage = (event) => {
@@ -57,7 +53,7 @@ export function useWebSocket({ onMessage }: WebSocketHookOptions = {}) {
 
       ws.onerror = (error) => {
         console.error('WebSocket error:', error);
-        setIsConnected(false);
+        ws.close();
       };
 
       ws.onclose = () => {
@@ -65,19 +61,21 @@ export function useWebSocket({ onMessage }: WebSocketHookOptions = {}) {
         setIsConnected(false);
         socket.current = null;
 
+        // Only attempt to reconnect if we haven't exceeded the maximum attempts
         if (reconnectAttempt.current < maxReconnectAttempts) {
           const backoffTime = Math.min(1000 * Math.pow(2, reconnectAttempt.current), 30000);
           reconnectAttempt.current++;
-
-          console.log(`Attempting reconnect in ${backoffTime}ms (attempt ${reconnectAttempt.current})`);
 
           // Clear any existing timeout
           if (reconnectTimeoutRef.current) {
             clearTimeout(reconnectTimeoutRef.current);
           }
 
+          // Set up new reconnection attempt
+          console.log(`Attempting reconnect in ${backoffTime}ms (attempt ${reconnectAttempt.current})`);
           reconnectTimeoutRef.current = setTimeout(connect, backoffTime);
 
+          // Only show toast on first disconnect
           if (reconnectAttempt.current === 1) {
             toast({
               title: 'Connection Lost',
@@ -103,13 +101,20 @@ export function useWebSocket({ onMessage }: WebSocketHookOptions = {}) {
     connect();
 
     return () => {
+      // Clear any pending reconnection timeout
       if (reconnectTimeoutRef.current) {
         clearTimeout(reconnectTimeoutRef.current);
       }
+
+      // Close existing socket connection
       if (socket.current) {
         socket.current.close();
         socket.current = null;
       }
+
+      // Reset connection state
+      setIsConnected(false);
+      reconnectAttempt.current = 0;
     };
   }, [connect]);
 
