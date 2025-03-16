@@ -99,101 +99,105 @@ export default function UserPanel() {
   }
 
   return (
-    <div className="container mx-auto py-8 px-4">
-      <div className="flex items-center justify-between mb-8">
-        <h1 className="text-4xl font-bold">Account Information</h1>
-        <Button
-          variant="outline"
-          className="flex items-center gap-2 text-destructive hover:text-destructive hover:bg-destructive/10"
-          onClick={handleLogout}
-        >
-          <LogOut className="h-4 w-4" />
-          Logout
-        </Button>
-      </div>
+    <div className="min-h-screen bg-background">
+      <div className="container mx-auto py-8 px-4">
+        <div className="flex items-center justify-between mb-8">
+          <h1 className="text-3xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-primary/80 to-primary">
+            Account Settings
+          </h1>
+          <Button
+            variant="outline"
+            className="flex items-center gap-2 text-destructive hover:text-destructive hover:bg-destructive/10"
+            onClick={handleLogout}
+          >
+            <LogOut className="h-4 w-4" />
+            Logout
+          </Button>
+        </div>
 
-      <div className="grid gap-6">
-        <Card className="overflow-hidden">
-          <CardHeader className="space-y-1">
-            <CardTitle className="text-2xl">API Key Status</CardTitle>
-            <CardDescription>
-              Time remaining on your API key
-            </CardDescription>
-          </CardHeader>
-          <CardContent>
-            {subscription ? (
-              <div className="space-y-4">
-                <div className="flex items-center justify-between p-4 bg-card/50 rounded-lg border border-border/50">
-                  <div className="flex items-center gap-3">
-                    {subscription.active ? (
-                      <CheckCircle2 className="h-6 w-6 text-green-500" />
-                    ) : (
-                      <XCircle className="h-6 w-6 text-red-500" />
-                    )}
-                    <div>
-                      <div className="font-medium">
-                        {subscription.active ? 'Valid API Key' : 'Expired API Key'}
-                      </div>
-                      <div className="text-sm text-muted-foreground flex items-center gap-2 mt-1">
-                        <Calendar className="h-4 w-4" />
-                        <span>Valid until: {new Date(subscription.expiresAt).toLocaleDateString()}</span>
+        <div className="grid gap-6">
+          <Card className="overflow-hidden card-shine">
+            <CardHeader className="space-y-1">
+              <CardTitle className="text-2xl">API Key Time Remaining</CardTitle>
+              <CardDescription>
+                Your current API key status and validity period
+              </CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-6">
+              {subscription ? (
+                <div className="space-y-4">
+                  <div className="flex items-center justify-between p-4 bg-card/50 rounded-lg border border-border/50">
+                    <div className="flex items-center gap-3">
+                      {subscription.active ? (
+                        <CheckCircle2 className="h-6 w-6 text-green-500" />
+                      ) : (
+                        <XCircle className="h-6 w-6 text-red-500" />
+                      )}
+                      <div>
+                        <div className="font-medium">
+                          {subscription.active ? 'Active Key' : 'Expired Key'}
+                        </div>
+                        <div className="text-sm text-muted-foreground flex items-center gap-2 mt-1">
+                          <Calendar className="h-4 w-4" />
+                          <span>Valid until: {new Date(subscription.expiresAt).toLocaleDateString()}</span>
+                        </div>
                       </div>
                     </div>
+                    {subscription.active && (
+                      <div className="text-2xl font-bold text-primary">
+                        {formatTimeLeft(subscription.expiresAt)}
+                        <span className="text-sm text-muted-foreground ml-1">left</span>
+                      </div>
+                    )}
                   </div>
-                  {subscription.active && (
-                    <div className="text-2xl font-bold text-primary">
-                      {formatTimeLeft(subscription.expiresAt)}
-                      <span className="text-sm text-muted-foreground ml-1">left</span>
+
+                  {!subscription.active && (
+                    <div className="text-sm text-muted-foreground bg-destructive/5 p-4 rounded-lg border border-destructive/20">
+                      Your API key has expired. Please enter a new API key below to continue using the service.
                     </div>
                   )}
                 </div>
+              ) : (
+                <div className="text-muted-foreground bg-primary/5 p-4 rounded-lg border border-primary/20">
+                  No active API key found. Enter your API key below to get started.
+                </div>
+              )}
+            </CardContent>
+          </Card>
 
-                {!subscription.active && (
-                  <div className="text-sm text-muted-foreground bg-destructive/5 p-4 rounded-lg border border-destructive/20">
-                    Your API key has expired. Please enter a new API key below to continue using the service.
-                  </div>
-                )}
+          <Card className="card-shine">
+            <CardHeader>
+              <CardTitle>Extend Access Time</CardTitle>
+              <CardDescription>
+                Add a new API key to extend your access period
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              <div className="flex gap-4">
+                <Input
+                  placeholder="Enter API key"
+                  value={apiKey}
+                  onChange={(e) => setApiKey(e.target.value)}
+                  className="bg-background/50 border-border/50 animate-input"
+                />
+                <Button
+                  onClick={() => apiKey && addKeyMutation.mutate(apiKey)}
+                  disabled={addKeyMutation.isPending || !apiKey}
+                  className="bg-primary hover:bg-primary/90 animate-button"
+                >
+                  {addKeyMutation.isPending ? (
+                    <>
+                      <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                      Adding...
+                    </>
+                  ) : (
+                    'Add Key'
+                  )}
+                </Button>
               </div>
-            ) : (
-              <div className="text-muted-foreground bg-primary/5 p-4 rounded-lg border border-primary/20">
-                No active API key found. Enter your API key below to get started.
-              </div>
-            )}
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardHeader>
-            <CardTitle>Enter API Key</CardTitle>
-            <CardDescription>
-              Enter your API key to activate or extend your access
-            </CardDescription>
-          </CardHeader>
-          <CardContent>
-            <div className="flex gap-4">
-              <Input
-                placeholder="Enter API key"
-                value={apiKey}
-                onChange={(e) => setApiKey(e.target.value)}
-                className="animate-input"
-              />
-              <Button
-                onClick={() => apiKey && addKeyMutation.mutate(apiKey)}
-                disabled={addKeyMutation.isPending || !apiKey}
-                className="animate-button"
-              >
-                {addKeyMutation.isPending ? (
-                  <>
-                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                    Adding...
-                  </>
-                ) : (
-                  'Add Key'
-                )}
-              </Button>
-            </div>
-          </CardContent>
-        </Card>
+            </CardContent>
+          </Card>
+        </div>
       </div>
     </div>
   );
