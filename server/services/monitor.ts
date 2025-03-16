@@ -7,10 +7,10 @@ import { log } from "../vite";
 class MonitoringService {
   private monitoringIntervals: Map<string, NodeJS.Timeout> = new Map();
 
-  async startMonitoring(params: SearchParams) {
+  async startMonitoring(params: SearchParams, userId: number) {
     try {
-      // Create monitor in database
-      const { id: monitorId } = await storage.createMonitor(params);
+      // Create monitor in database with userId
+      const { id: monitorId } = await storage.createMonitor(params, userId);
       const intervalId = monitorId.toString();
 
       if (this.monitoringIntervals.has(intervalId)) {
@@ -35,11 +35,12 @@ class MonitoringService {
             if (result.status === 'fulfilled') {
               result.value.forEach(async (product) => {
                 // Skip if product doesn't match price range
-                if (params.minPrice !== undefined && product.price < params.minPrice) {
+                const productPrice = parseFloat(product.price);
+                if (params.minPrice !== undefined && productPrice < params.minPrice) {
                   log(`Skipping product ${product.title} (price ${product.price} < min ${params.minPrice})`);
                   return;
                 }
-                if (params.maxPrice !== undefined && product.price > params.maxPrice) {
+                if (params.maxPrice !== undefined && productPrice > params.maxPrice) {
                   log(`Skipping product ${product.title} (price ${product.price} > max ${params.maxPrice})`);
                   return;
                 }

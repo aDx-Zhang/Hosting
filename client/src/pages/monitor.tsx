@@ -8,6 +8,7 @@ import { Alert, AlertDescription } from "@/components/ui/alert";
 import { AlertTriangle, X } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { useAuth } from "@/hooks/use-auth";
 
 interface Monitor {
   id: string;
@@ -54,6 +55,7 @@ export default function Monitor() {
     updateFrequency: 30
   });
   const { toast } = useToast();
+  const { user } = useAuth();
 
   useEffect(() => {
     const loadMonitors = async () => {
@@ -206,7 +208,7 @@ export default function Monitor() {
                 />
 
                 <div className="mt-4">
-                  <Button 
+                  <Button
                     onClick={startNewMonitor}
                     className="w-full bg-green-600 hover:bg-green-700"
                   >

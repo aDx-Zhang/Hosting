@@ -53,8 +53,12 @@ export async function registerRoutes(app: Express) {
 
   app.post("/api/monitor/start", async (req, res) => {
     try {
+      if (!req.session.userId) {
+        return res.status(401).json({ error: "Not authenticated" });
+      }
+
       const params = searchParamsSchema.parse(req.body);
-      const result = await monitoringService.startMonitoring(params);
+      const result = await monitoringService.startMonitoring(params, req.session.userId);
       res.json(result);
     } catch (error) {
       log(`Monitor start error: ${error}`);
@@ -76,7 +80,7 @@ export async function registerRoutes(app: Express) {
   const httpServer = createServer(app);
 
   // Basic WebSocket server configuration
-  wss = new WebSocketServer({ 
+  wss = new WebSocketServer({
     server: httpServer,
     path: '/ws'
   });
@@ -95,7 +99,7 @@ export async function registerRoutes(app: Express) {
 
     ws.on('pong', heartbeat);
 
-    ws.send(JSON.stringify({ 
+    ws.send(JSON.stringify({
       type: 'connection_established',
       message: 'Connected to real-time updates'
     }));
