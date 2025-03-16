@@ -179,6 +179,7 @@ export class DatabaseStorage implements IStorage {
       const [newProduct] = await db.insert(products)
         .values({
           ...product,
+          // Convert string price to numeric for database storage
           price: typeof product.price === 'string' ? parseFloat(product.price) : product.price,
           foundAt: new Date()
         })
