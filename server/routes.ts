@@ -11,7 +11,7 @@ import { authRouter } from "./routes/auth";
 const clients = new Set<WebSocket>();
 
 // Send ping to keep connections alive
-function heartbeat() {
+function heartbeat(this: WebSocket) {
   this.isAlive = true;
 }
 
@@ -67,7 +67,7 @@ export async function registerRoutes(app: Express) {
     try {
       const { monitorId } = req.body;
       await monitoringService.stopMonitoring(monitorId);
-      res.json({ success: true, message: "Monitoring stopped" });
+      res.json({ success: true });
     } catch (error) {
       log(`Monitor stop error: ${error}`);
       res.status(400).json({ error: "Failed to stop monitor" });
@@ -81,7 +81,7 @@ export async function registerRoutes(app: Express) {
 
   // Ping clients every 30 seconds to keep connections alive
   const interval = setInterval(() => {
-    wss.clients.forEach((ws: any) => {
+    wss.clients.forEach((ws: WebSocket & { isAlive?: boolean }) => {
       if (ws.isAlive === false) {
         clients.delete(ws);
         return ws.terminate();
@@ -92,7 +92,7 @@ export async function registerRoutes(app: Express) {
     });
   }, 30000);
 
-  wss.on('connection', (ws: any) => {
+  wss.on('connection', (ws: WebSocket & { isAlive?: boolean }) => {
     log('New WebSocket client connected');
     ws.isAlive = true;
     ws.on('pong', heartbeat);
