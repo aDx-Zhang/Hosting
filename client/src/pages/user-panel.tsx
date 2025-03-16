@@ -50,18 +50,18 @@ export default function UserPanel() {
 
   const addKeyMutation = useMutation({
     mutationFn: async (key: string) => {
-      const res = await fetch('/api/auth/add-key', {
+      const response = await fetch('/api/auth/add-key', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ apiKey: key })
       });
 
-      if (!res.ok) {
-        const error = await res.json();
+      if (!response.ok) {
+        const error = await response.json();
         throw new Error(error.message || error.error || 'Failed to add API key');
       }
 
-      return res.json();
+      return response.json();
     },
     onSuccess: () => {
       toast({
@@ -102,11 +102,10 @@ export default function UserPanel() {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-purple-900/90 via-purple-800/80 to-background/95">
+    <div className="min-h-screen flex items-center justify-center relative overflow-hidden">
+      <div className="absolute inset-0 w-full h-full animate-gradient z-0" />
       <div className="absolute inset-0 bg-grid-white/[0.02] -z-10" />
-      <div className="absolute inset-0 bg-gradient-to-b from-primary/20 via-purple-700/10 to-transparent -z-10" />
-
-      <div className="container mx-auto py-8 px-4">
+      <div className="container mx-auto py-8 px-4 relative z-10">
         <div className="flex items-center justify-between mb-8">
           <h1 className="text-3xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-primary/90 to-primary">
             Account Settings
@@ -121,8 +120,8 @@ export default function UserPanel() {
           </Button>
         </div>
 
-        <div className="grid gap-6">
-          <Card className="overflow-hidden card-shine bg-purple-900/30 backdrop-blur-md supports-[backdrop-filter]:bg-background/40">
+        <div className="grid gap-6 max-w-2xl mx-auto">
+          <Card className="overflow-hidden card-shine bg-card/30 backdrop-blur-xl border-border/50">
             <CardHeader className="space-y-1">
               <CardTitle className="text-2xl">API Key Time Remaining</CardTitle>
               <CardDescription>
@@ -178,7 +177,7 @@ export default function UserPanel() {
             </CardContent>
           </Card>
 
-          <Card className="card-shine bg-purple-900/30 backdrop-blur-md supports-[backdrop-filter]:bg-background/40">
+          <Card className="card-shine bg-card/30 backdrop-blur-xl border-border/50">
             <CardHeader>
               <CardTitle>Extend Access Time</CardTitle>
               <CardDescription>
