@@ -4,7 +4,7 @@ import { loginSchema, apiKeySchema, registerSchema } from "@shared/schema";
 import { log } from "../vite";
 import { db } from '../db';
 import { users as usersTable, apiKeys as apiKeysTable } from '@shared/schema';
-import { eq, and } from "drizzle-orm";
+import { eq } from "drizzle-orm";
 import { nanoid } from "nanoid";
 import { hash } from '../utils/hash';
 
@@ -130,42 +130,39 @@ router.post("/generate-key", async (req, res) => {
   }
 });
 
-// Register new user
+// Simplified registration with API key validation
 router.post("/register", async (req, res) => {
   try {
     const { username, password, apiKey } = registerSchema.parse(req.body);
-    log(`Registration attempt with API key: ${apiKey}`);
+    log(`Registration attempt - Username: ${username}, API Key: ${apiKey}`);
 
-    // Check username
+    // Check if username exists
     const existingUser = await db.select()
       .from(usersTable)
-      .where(eq(usersTable.username, username));
+      .where(eq(usersTable.username, username))
+      .execute();
 
     if (existingUser.length > 0) {
+      log('Registration failed: Username already exists');
       return res.status(400).json({
         error: "Username already exists"
       });
     }
 
-    // Validate API key
+    // Simplified API key validation
     const [key] = await db.select()
       .from(apiKeysTable)
-      .where(
-        and(
-          eq(apiKeysTable.key, apiKey),
-          eq(apiKeysTable.active, 1),
-          eq(apiKeysTable.userId, null)
-        )
-      );
+      .where(eq(apiKeysTable.key, apiKey))
+      .execute();
 
-    if (!key) {
-      log('API key validation failed');
+    log(`API key found: ${JSON.stringify(key)}`);
+
+    if (!key || key.userId !== null || key.active !== 1) {
+      log('Registration failed: Invalid or used API key');
       return res.status(400).json({
         error: "Invalid or already used API key"
       });
     }
-
-    log('API key validation successful');
 
     // Create user
     const hashedPassword = await hash(password);
@@ -177,7 +174,9 @@ router.post("/register", async (req, res) => {
       })
       .returning();
 
-    // Update API key with expiration
+    log(`User created successfully: ${user.username}`);
+
+    // Update API key
     const expiresAt = new Date();
     expiresAt.setDate(expiresAt.getDate() + key.durationDays);
 
@@ -186,7 +185,10 @@ router.post("/register", async (req, res) => {
         userId: user.id,
         expiresAt: expiresAt
       })
-      .where(eq(apiKeysTable.id, key.id));
+      .where(eq(apiKeysTable.id, key.id))
+      .execute();
+
+    log(`API key updated with user ID and expiration`);
 
     // Set up session
     req.session.userId = user.id;
