@@ -2,6 +2,7 @@ import { pgTable, text, serial, integer, doublePrecision, timestamp, jsonb } fro
 import { createInsertSchema } from "drizzle-zod";
 import { z } from "zod";
 
+// Existing tables remain unchanged
 export const products = pgTable("products", {
   id: serial("id").primaryKey(),
   title: text("title").notNull(),
@@ -20,7 +21,8 @@ export const monitors = pgTable("monitors", {
   params: jsonb("params").notNull().$type<SearchParams>(),
   lastCheckedAt: timestamp("last_checked_at"),
   active: integer("active").default(1),
-  updateFrequency: integer("update_frequency").default(30).notNull(), // in seconds
+  updateFrequency: integer("update_frequency").default(30).notNull(),
+  userId: integer("user_id").notNull(), // Add user association
 });
 
 export const monitorProducts = pgTable("monitor_products", {
@@ -30,17 +32,26 @@ export const monitorProducts = pgTable("monitor_products", {
   createdAt: timestamp("created_at").defaultNow().notNull(),
 });
 
-export const insertProductSchema = createInsertSchema(products).pick({
-  title: true,
-  description: true,
-  price: true,
-  image: true,
-  marketplace: true,
-  originalUrl: true,
-  latitude: true,
-  longitude: true,
+// New tables for authentication
+export const users = pgTable("users", {
+  id: serial("id").primaryKey(),
+  username: text("username").notNull().unique(),
+  password: text("password").notNull(),
+  role: text("role").notNull().default("user"), // 'admin' or 'user'
+  createdAt: timestamp("created_at").defaultNow().notNull(),
 });
 
+export const apiKeys = pgTable("api_keys", {
+  id: serial("id").primaryKey(),
+  key: text("key").notNull().unique(),
+  userId: integer("user_id").notNull(),
+  expiresAt: timestamp("expires_at").notNull(),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+  active: integer("active").default(1),
+});
+
+// Existing schemas
+export const insertProductSchema = createInsertSchema(products);
 export type InsertProduct = z.infer<typeof insertProductSchema>;
 export type Product = typeof products.$inferSelect;
 
@@ -52,7 +63,26 @@ export const searchParamsSchema = z.object({
   lat: z.number().optional(),
   lng: z.number().optional(),
   radius: z.number().optional(),
-  updateFrequency: z.number().min(10).max(300).default(30), // 10 seconds to 5 minutes
+  updateFrequency: z.number().min(10).max(300).default(30),
 });
 
 export type SearchParams = z.infer<typeof searchParamsSchema>;
+
+// New schemas for authentication
+export const loginSchema = z.object({
+  username: z.string().min(3),
+  password: z.string().min(6),
+});
+
+export const registerSchema = loginSchema.extend({
+  role: z.enum(['admin', 'user']).default('user'),
+});
+
+export const apiKeySchema = z.object({
+  userId: z.number(),
+  durationDays: z.number().min(1).max(365),
+});
+
+export type User = typeof users.$inferSelect;
+export type InsertUser = typeof users.$inferInsert;
+export type ApiKey = typeof apiKeys.$inferSelect;

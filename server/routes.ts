@@ -5,6 +5,7 @@ import { storage } from "./storage";
 import { searchParamsSchema } from "@shared/schema";
 import { log } from "./vite";
 import { monitoringService } from "./services/monitor";
+import { authRouter } from "./routes/auth";
 
 // Keep track of all connected clients
 const clients = new Set<WebSocket>();
@@ -25,6 +26,9 @@ export function broadcastUpdate(data: unknown) {
 }
 
 export async function registerRoutes(app: Express) {
+  // Register auth routes
+  app.use("/api/auth", authRouter);
+
   app.get("/api/monitors", async (req, res) => {
     try {
       const monitors = await storage.getActiveMonitors();
