@@ -15,16 +15,18 @@ function heartbeat(this: WebSocket & { isAlive?: boolean }) {
 
 // Broadcast updates to all connected clients
 export function broadcastUpdate(data: unknown) {
+  if (!wss) return;
   const message = JSON.stringify(data);
-  clients.forEach(client => {
+  wss.clients.forEach(client => {
     if (client.readyState === WebSocket.OPEN) {
       client.send(message);
     }
   });
 }
 
+let wss: WebSocketServer;
+
 export async function registerRoutes(app: Express) {
-  // Register auth routes
   app.use("/api/auth", authRouter);
 
   app.get("/api/monitors", async (req, res) => {
@@ -73,23 +75,17 @@ export async function registerRoutes(app: Express) {
   const httpServer = createServer(app);
 
   // Initialize WebSocket server
-  const wss = new WebSocketServer({ 
+  wss = new WebSocketServer({ 
     server: httpServer,
-    path: '/ws',
-    perMessageDeflate: false
+    path: '/ws'
   });
-
-  // Keep track of all connected clients
-  const clients = new Set<WebSocket>();
 
   function noop() {}
 
-  // Ping clients every 30 seconds to keep connections alive
+  // Keep alive check interval
   const interval = setInterval(() => {
     wss.clients.forEach((ws: WebSocket & { isAlive?: boolean }) => {
       if (ws.isAlive === false) {
-        log('Client connection timed out, terminating');
-        clients.delete(ws);
         return ws.terminate();
       }
       ws.isAlive = false;
@@ -101,9 +97,7 @@ export async function registerRoutes(app: Express) {
     log('New WebSocket client connected');
     ws.isAlive = true;
     ws.on('pong', heartbeat);
-    clients.add(ws);
 
-    // Send initial connection confirmation
     ws.send(JSON.stringify({ 
       type: 'connection_established',
       message: 'Connected to real-time updates'
@@ -111,12 +105,10 @@ export async function registerRoutes(app: Express) {
 
     ws.on('error', (error) => {
       log(`WebSocket error: ${error}`);
-      clients.delete(ws);
     });
 
     ws.on('close', () => {
       log('Client disconnected');
-      clients.delete(ws);
     });
   });
 

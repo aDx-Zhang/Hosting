@@ -15,7 +15,6 @@ export function useWebSocket({ onMessage }: WebSocketHookOptions = {}) {
   const reconnectTimeoutRef = useRef<NodeJS.Timeout>();
 
   const connect = useCallback(() => {
-    // Don't try to reconnect if we're already connected or connecting
     if (socket.current?.readyState === WebSocket.OPEN || isConnecting) {
       return;
     }
@@ -23,13 +22,11 @@ export function useWebSocket({ onMessage }: WebSocketHookOptions = {}) {
     try {
       setIsConnecting(true);
 
-      // Clean up existing socket if any
       if (socket.current) {
         socket.current.close();
         socket.current = null;
       }
 
-      // Create new WebSocket connection
       const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
       const wsUrl = `${protocol}//${window.location.host}/ws`;
       const ws = new WebSocket(wsUrl);
@@ -67,17 +64,14 @@ export function useWebSocket({ onMessage }: WebSocketHookOptions = {}) {
         setIsConnecting(false);
         socket.current = null;
 
-        // Only attempt to reconnect if we haven't exceeded the maximum attempts
         if (reconnectAttempt.current < maxReconnectAttempts) {
           const backoffTime = Math.min(1000 * Math.pow(2, reconnectAttempt.current), 30000);
           reconnectAttempt.current++;
 
-          // Clear any existing timeout
           if (reconnectTimeoutRef.current) {
             clearTimeout(reconnectTimeoutRef.current);
           }
 
-          // Schedule reconnection attempt
           reconnectTimeoutRef.current = setTimeout(() => {
             if (!isConnected && !isConnecting) {
               connect();
@@ -115,5 +109,5 @@ export function useWebSocket({ onMessage }: WebSocketHookOptions = {}) {
     };
   }, [connect]);
 
-  return { isConnected, isConnecting, socket: socket.current };
+  return { isConnected, isConnecting };
 }
