@@ -88,11 +88,8 @@ export default function UserPanel() {
   }
 
   return (
-    <div className="min-h-screen bg-[#2a1f3d] relative overflow-hidden">
-      <div className="absolute inset-0 w-full h-full animate-gradient" />
-      <div className="absolute inset-0 bg-grid-white/[0.02] -z-10" />
-
-      <div className="container mx-auto py-8 px-4 relative z-10">
+    <div className="min-h-screen bg-[#2a1f3d] p-8">
+      <div className="container mx-auto">
         <div className="grid gap-6 max-w-2xl mx-auto">
           {subscription ? (
             <div className="flex items-center justify-between p-4 bg-[#2a1f3d] rounded-lg border border-purple-700/30">

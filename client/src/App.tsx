@@ -34,6 +34,14 @@ function Navigation() {
     }
   };
 
+  const navLinkStyle = (isActive: boolean) => `
+    flex items-center gap-2 px-3 py-2 rounded-md transition-colors
+    ${isActive 
+      ? "bg-primary/20 text-primary border border-purple-700/30" 
+      : "text-gray-400 hover:text-primary hover:bg-primary/10"
+    }
+  `;
+
   return (
     <header className="sticky top-0 z-50">
       <div className="w-full bg-[#2a1f3d]/95 backdrop-blur-sm border-b border-purple-700/30">
@@ -42,27 +50,21 @@ function Navigation() {
             <h1 className="text-xl font-bold text-primary">FlipX</h1>
             <nav className="flex items-center gap-4">
               <Link href="/">
-                <a className={`flex items-center gap-2 px-3 py-2 rounded-md transition-colors ${
-                  location === "/" ? "bg-primary/10 text-primary" : "text-muted-foreground hover:text-primary hover:bg-accent"
-                }`}>
+                <a className={navLinkStyle(location === "/")}>
                   <Bell className="h-4 w-4" />
                   <span>Price Monitors</span>
                 </a>
               </Link>
               {user.role === 'admin' ? (
                 <Link href="/admin">
-                  <a className={`flex items-center gap-2 px-3 py-2 rounded-md transition-colors ${
-                    location === "/admin" ? "bg-primary/10 text-primary" : "text-muted-foreground hover:text-primary hover:bg-accent"
-                  }`}>
+                  <a className={navLinkStyle(location === "/admin")}>
                     <Settings className="h-4 w-4" />
                     <span>Admin Panel</span>
                   </a>
                 </Link>
               ) : (
                 <Link href="/user">
-                  <a className={`flex items-center gap-2 px-3 py-2 rounded-md transition-colors ${
-                    location === "/user" ? "bg-primary/10 text-primary" : "text-muted-foreground hover:text-primary hover:bg-accent"
-                  }`}>
+                  <a className={navLinkStyle(location === "/user")}>
                     <UserIcon className="h-4 w-4" />
                     <span>My Account</span>
                   </a>
@@ -71,15 +73,15 @@ function Navigation() {
             </nav>
           </div>
           <div className="flex items-center gap-4">
-            <span className="text-sm text-muted-foreground">
+            <span className="text-sm text-gray-400">
               Welcome, {user.username}
             </span>
-            <Separator orientation="vertical" className="h-6" />
+            <Separator orientation="vertical" className="h-6 bg-purple-700/30" />
             <Button
               variant="ghost"
               size="sm"
               onClick={handleLogout}
-              className="text-muted-foreground hover:text-destructive"
+              className="text-gray-400 hover:text-destructive hover:bg-destructive/10"
             >
               <LogOut className="h-4 w-4" />
             </Button>
