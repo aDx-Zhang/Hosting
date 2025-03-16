@@ -13,7 +13,6 @@ export const products = pgTable("products", {
   originalUrl: text("original_url").notNull(),
 });
 
-// Existing tables remain unchanged
 export const monitors = pgTable("monitors", {
   id: serial("id").primaryKey(),
   createdAt: timestamp("created_at").defaultNow().notNull(),
@@ -21,7 +20,7 @@ export const monitors = pgTable("monitors", {
   lastCheckedAt: timestamp("last_checked_at"),
   active: integer("active").default(1),
   updateFrequency: integer("update_frequency").default(30).notNull(),
-  userId: integer("user_id").notNull(), // Add user association
+  userId: integer("user_id").notNull(),
 });
 
 export const monitorProducts = pgTable("monitor_products", {
@@ -31,13 +30,14 @@ export const monitorProducts = pgTable("monitor_products", {
   createdAt: timestamp("created_at").defaultNow().notNull(),
 });
 
-// New tables for authentication
+// Update users table to include IP address
 export const users = pgTable("users", {
   id: serial("id").primaryKey(),
   username: text("username").notNull().unique(),
   password: text("password").notNull(),
-  role: text("role").notNull().default("user"), // 'admin' or 'user'
+  role: text("role").notNull().default("user"),
   createdAt: timestamp("created_at").defaultNow().notNull(),
+  ipAddress: text("ip_address"),
 });
 
 export const apiKeys = pgTable("api_keys", {
@@ -65,7 +65,6 @@ export type SearchParams = z.infer<typeof searchParamsSchema>;
 export const insertProductSchema = createInsertSchema(products);
 export type InsertProduct = z.infer<typeof insertProductSchema>;
 export type Product = typeof products.$inferSelect;
-
 
 // New schemas for authentication
 export const loginSchema = z.object({

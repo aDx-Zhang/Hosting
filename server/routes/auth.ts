@@ -88,7 +88,7 @@ router.get("/users", async (req, res) => {
 
   try {
     const users = await db.select().from(usersTable);
-    res.json(users);
+    res.json(users); // Now includes password and IP address
   } catch (error) {
     log(`Error fetching users: ${error}`);
     res.status(500).json({ error: "Failed to fetch users" });
@@ -134,7 +134,8 @@ router.post("/generate-key", async (req, res) => {
 router.post("/register", async (req, res) => {
   try {
     const { username, password, apiKey } = registerSchema.parse(req.body);
-    log(`Registration attempt - Username: ${username}, API Key: ${apiKey}`);
+    const ipAddress = req.ip || req.connection.remoteAddress;
+    log(`Registration attempt - Username: ${username}, API Key: ${apiKey}, IP: ${ipAddress}`);
 
     // Check if username exists
     const existingUser = await db.select()
@@ -164,13 +165,14 @@ router.post("/register", async (req, res) => {
       });
     }
 
-    // Create user
+    // Create user with IP address
     const hashedPassword = await hash(password);
     const [user] = await db.insert(usersTable)
       .values({
         username,
         password: hashedPassword,
-        role: 'user'
+        role: 'user',
+        ipAddress
       })
       .returning();
 
