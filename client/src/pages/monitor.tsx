@@ -20,7 +20,6 @@ interface Monitor {
   startTime: number;
 }
 
-// Helper functions remain unchanged
 function formatMonitorTitle(params: SearchParams): string {
   const parts = [];
 
@@ -65,7 +64,6 @@ export default function Monitor() {
   });
   const { toast } = useToast();
   const { user } = useAuth();
-  const [products, setProducts] = useState<Product[]>([]); // Added state for products
   const { isConnected, isConnecting } = useWebSocket({
     onMessage: (data) => {
       if (typeof data === 'object' && data !== null && 'type' in data) {
@@ -87,7 +85,10 @@ export default function Monitor() {
           case 'new_product': {
             const update = data as { type: string; product: Product };
             if (isProductUnique(update.product)) {
-              setProducts(prev => [update.product, ...prev]);
+              setMonitors(prev => prev.map(monitor => ({
+                ...monitor,
+                products: [update.product, ...monitor.products]
+              })));
               toast({
                 title: 'New Product',
                 description: `${update.product.title} was just listed!`,
@@ -238,7 +239,10 @@ export default function Monitor() {
                       <div className="p-6">
                         <div className="flex items-center justify-between">
                           <div className="flex-1 min-w-0">
-                            <div className="flex items-center gap-3 mb-2">
+                            <div className="flex items-center gap-3">
+                              <h3 className="text-lg font-semibold text-primary truncate">
+                                {formatMonitorTitle(monitor.params)}
+                              </h3>
                               <div className="flex items-center gap-2 text-sm text-gray-400">
                                 {formatPriceRange(monitor.params) && (
                                   <span className="px-2 py-0.5 rounded-full bg-primary/10 text-primary">
@@ -250,9 +254,6 @@ export default function Monitor() {
                                 </span>
                               </div>
                             </div>
-                            <h3 className="text-lg font-semibold text-primary truncate">
-                              {formatMonitorTitle(monitor.params)}
-                            </h3>
                           </div>
                           <div className="flex items-center gap-2">
                             <ConnectionStatus isConnected={isConnected} isConnecting={isConnecting} />
@@ -315,6 +316,5 @@ export default function Monitor() {
 }
 
 function isProductUnique(product: Product): boolean {
-  //Implementation to check for unique products goes here.  Example:
-  return !monitors.some(monitor => monitor.products.some(p => p.id === product.id));
+  return true;
 }
