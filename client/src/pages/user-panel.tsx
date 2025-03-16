@@ -29,7 +29,7 @@ function formatTimeLeft(expiresAt: string): string {
   if (days < 0) return 'Expired';
   if (days === 0) return 'Expires today';
   if (days === 1) return 'Expires tomorrow';
-  return `${days} days remaining`;
+  return `${days} days`;
 }
 
 export default function UserPanel() {
@@ -117,49 +117,45 @@ export default function UserPanel() {
           <CardHeader className="space-y-1">
             <CardTitle className="text-2xl">Subscription Status</CardTitle>
             <CardDescription>
-              Your current subscription information and status
+              Time remaining on your subscription
             </CardDescription>
           </CardHeader>
           <CardContent>
             {subscription ? (
               <div className="space-y-4">
-                <div className="flex items-center gap-2">
-                  {subscription.active ? (
-                    <CheckCircle2 className="h-5 w-5 text-green-500" />
-                  ) : (
-                    <XCircle className="h-5 w-5 text-red-500" />
-                  )}
-                  <span className={`text-lg font-medium ${subscription.active ? 'text-green-500' : 'text-red-500'}`}>
-                    {subscription.active ? 'Active' : 'Expired'}
-                  </span>
-                </div>
-
-                <div className="bg-card/50 rounded-lg p-4 border border-border/50">
-                  <div className="flex items-center gap-2 text-muted-foreground">
-                    <Calendar className="h-4 w-4" />
-                    <span>
-                      {subscription.active ? (
-                        <>
-                          Expires: {new Date(subscription.expiresAt).toLocaleDateString()} 
-                          <span className="ml-2 text-primary">
-                            ({formatTimeLeft(subscription.expiresAt)})
-                          </span>
-                        </>
-                      ) : (
-                        'Subscription expired'
-                      )}
-                    </span>
+                <div className="flex items-center justify-between p-4 bg-card/50 rounded-lg border border-border/50">
+                  <div className="flex items-center gap-3">
+                    {subscription.active ? (
+                      <CheckCircle2 className="h-6 w-6 text-green-500" />
+                    ) : (
+                      <XCircle className="h-6 w-6 text-red-500" />
+                    )}
+                    <div>
+                      <div className="font-medium">
+                        {subscription.active ? 'Active Subscription' : 'Expired Subscription'}
+                      </div>
+                      <div className="text-sm text-muted-foreground flex items-center gap-2 mt-1">
+                        <Calendar className="h-4 w-4" />
+                        <span>Expires: {new Date(subscription.expiresAt).toLocaleDateString()}</span>
+                      </div>
+                    </div>
                   </div>
+                  {subscription.active && (
+                    <div className="text-2xl font-bold text-primary">
+                      {formatTimeLeft(subscription.expiresAt)}
+                      <span className="text-sm text-muted-foreground ml-1">remaining</span>
+                    </div>
+                  )}
                 </div>
 
                 {!subscription.active && (
-                  <div className="text-sm text-muted-foreground mt-2">
+                  <div className="text-sm text-muted-foreground bg-destructive/5 p-4 rounded-lg border border-destructive/20">
                     Your subscription has expired. Please add a new API key below to continue using the service.
                   </div>
                 )}
               </div>
             ) : (
-              <div className="text-muted-foreground">
+              <div className="text-muted-foreground bg-primary/5 p-4 rounded-lg border border-primary/20">
                 No active subscription found. Add an API key below to get started.
               </div>
             )}
@@ -168,9 +164,9 @@ export default function UserPanel() {
 
         <Card>
           <CardHeader>
-            <CardTitle>Add API Key</CardTitle>
+            <CardTitle>Activate Subscription</CardTitle>
             <CardDescription>
-              Enter a valid API key to activate or extend your subscription
+              Enter your API key to activate or extend your subscription
             </CardDescription>
           </CardHeader>
           <CardContent>
