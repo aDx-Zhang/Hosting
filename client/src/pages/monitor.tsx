@@ -237,15 +237,6 @@ export default function Monitor() {
                                 <span className="px-2 py-0.5 rounded-full bg-primary/5">
                                   {formatUpdateFrequency(monitor.params.updateFrequency)}
                                 </span>
-                                <span className={`px-2 py-0.5 rounded-full ${
-                                  isConnected 
-                                    ? 'bg-emerald-500/10 text-emerald-500' 
-                                    : isConnecting 
-                                    ? 'bg-yellow-500/10 text-yellow-500' 
-                                    : 'bg-destructive/10 text-destructive'
-                                }`}>
-                                  {isConnected ? 'connected' : isConnecting ? 'connecting...' : 'disconnected'}
-                                </span>
                               </div>
                             </div>
                             <h3 className="text-lg font-semibold text-primary truncate">
