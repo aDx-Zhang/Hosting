@@ -1,12 +1,13 @@
 import { useAuth } from "@/hooks/use-auth";
 import { useQuery, useMutation } from "@tanstack/react-query";
-import { Loader2 } from "lucide-react";
+import { Loader2, Calendar, CheckCircle2, XCircle } from "lucide-react";
 import { Redirect } from "wouter";
 import {
   Card,
   CardContent,
   CardHeader,
   CardTitle,
+  CardDescription,
 } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
@@ -17,6 +18,18 @@ import { queryClient } from "@/lib/queryClient";
 interface SubscriptionInfo {
   expiresAt: string;
   active: boolean;
+}
+
+function formatTimeLeft(expiresAt: string): string {
+  const now = new Date();
+  const expiry = new Date(expiresAt);
+  const diff = expiry.getTime() - now.getTime();
+  const days = Math.ceil(diff / (1000 * 60 * 60 * 24));
+
+  if (days < 0) return 'Expired';
+  if (days === 0) return 'Expires today';
+  if (days === 1) return 'Expires tomorrow';
+  return `${days} days remaining`;
 }
 
 export default function UserPanel() {
@@ -67,40 +80,57 @@ export default function UserPanel() {
   if (isLoading) {
     return (
       <div className="flex items-center justify-center min-h-screen">
-        <Loader2 className="h-8 w-8 animate-spin" />
+        <Loader2 className="h-8 w-8 animate-spin text-primary" />
       </div>
     );
   }
 
   return (
-    <div className="container mx-auto py-8">
+    <div className="container mx-auto py-8 px-4">
       <h1 className="text-4xl font-bold mb-8">Account Information</h1>
 
-      <div className="grid grid-cols-1 gap-6">
-        <Card>
-          <CardHeader>
-            <CardTitle>Subscription Status</CardTitle>
+      <div className="grid gap-6">
+        <Card className="overflow-hidden">
+          <CardHeader className="space-y-1">
+            <CardTitle className="text-2xl">Subscription Status</CardTitle>
+            <CardDescription>
+              Your current subscription information and status
+            </CardDescription>
           </CardHeader>
           <CardContent>
             {subscription ? (
-              <div>
-                <div className="text-2xl font-bold mb-2">
+              <div className="space-y-4">
+                <div className="flex items-center gap-2">
                   {subscription.active ? (
-                    <span className="text-green-600">Active</span>
+                    <CheckCircle2 className="h-5 w-5 text-green-500" />
                   ) : (
-                    <span className="text-red-600">Expired</span>
+                    <XCircle className="h-5 w-5 text-red-500" />
                   )}
+                  <span className={`text-lg font-medium ${subscription.active ? 'text-green-500' : 'text-red-500'}`}>
+                    {subscription.active ? 'Active' : 'Expired'}
+                  </span>
                 </div>
-                <p className="text-muted-foreground">
-                  {subscription.active ? (
-                    <>Expires: {new Date(subscription.expiresAt).toLocaleDateString()}</>
-                  ) : (
-                    'Your subscription has expired. Please add a new API key below.'
-                  )}
-                </p>
+
+                <div className="bg-card/50 rounded-lg p-4 border border-border/50">
+                  <div className="flex items-center gap-2 text-muted-foreground">
+                    <Calendar className="h-4 w-4" />
+                    <span>
+                      Expires: {new Date(subscription.expiresAt).toLocaleDateString()} 
+                      ({formatTimeLeft(subscription.expiresAt)})
+                    </span>
+                  </div>
+                </div>
+
+                {!subscription.active && (
+                  <div className="text-sm text-muted-foreground mt-2">
+                    Your subscription has expired. Please add a new API key below to continue using the service.
+                  </div>
+                )}
               </div>
             ) : (
-              <p className="text-muted-foreground">No active subscription found.</p>
+              <div className="text-muted-foreground">
+                No active subscription found. Add an API key below to get started.
+              </div>
             )}
           </CardContent>
         </Card>
@@ -108,6 +138,9 @@ export default function UserPanel() {
         <Card>
           <CardHeader>
             <CardTitle>Add API Key</CardTitle>
+            <CardDescription>
+              Enter a valid API key to activate or extend your subscription
+            </CardDescription>
           </CardHeader>
           <CardContent>
             <div className="flex gap-4">
@@ -115,10 +148,12 @@ export default function UserPanel() {
                 placeholder="Enter API key"
                 value={apiKey}
                 onChange={(e) => setApiKey(e.target.value)}
+                className="animate-input"
               />
               <Button
                 onClick={() => apiKey && addKeyMutation.mutate(apiKey)}
                 disabled={addKeyMutation.isPending || !apiKey}
+                className="animate-button"
               >
                 {addKeyMutation.isPending ? (
                   <>
