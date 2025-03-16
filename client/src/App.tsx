@@ -10,6 +10,8 @@ import AdminPanel from "@/pages/admin-panel";
 import { useAuth } from "@/hooks/use-auth";
 import { Loader2 } from "lucide-react";
 import { Redirect } from "wouter";
+import Register from "@/pages/register"; // Added import for Register component
+
 
 function Navigation() {
   const [location] = useLocation();
@@ -92,6 +94,7 @@ function Router() {
   return (
     <Switch>
       <Route path="/login" component={Login} />
+      <Route path="/register" component={Register} />
       <Route path="/" component={() => <ProtectedRoute component={Home} />} />
       <Route path="/monitor" component={() => <ProtectedRoute component={Monitor} />} />
       <Route path="/admin" component={() => <AdminRoute component={AdminPanel} />} />

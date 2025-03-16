@@ -1,8 +1,8 @@
 import { useState } from "react";
-import { useLocation, Link } from "wouter";
+import { useLocation } from "wouter";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { loginSchema } from "@shared/schema";
+import { registerSchema } from "@shared/schema";
 import { useToast } from "@/hooks/use-toast";
 import {
   Form,
@@ -14,28 +14,27 @@ import {
 } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
-import { Card, CardHeader, CardContent, CardTitle } from "@/components/ui/card";
+import { Card, CardHeader, CardContent, CardTitle, CardFooter } from "@/components/ui/card";
+import { Link } from "wouter";
 
-export default function Login() {
+export default function Register() {
   const [, setLocation] = useLocation();
   const { toast } = useToast();
   const [isLoading, setIsLoading] = useState(false);
 
   const form = useForm({
-    resolver: zodResolver(loginSchema),
+    resolver: zodResolver(registerSchema),
     defaultValues: {
       username: "",
       password: "",
+      apiKey: "",
     },
   });
 
-  const onSubmit = async (values: { username: string; password: string }) => {
+  const onSubmit = async (values: { username: string; password: string; apiKey: string }) => {
     try {
       setIsLoading(true);
-      console.log('Submitting login form with username:', values.username);
-      console.log('Password length:', values.password.length);
-
-      const res = await fetch("/api/auth/login", {
+      const res = await fetch("/api/auth/register", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -48,19 +47,18 @@ export default function Login() {
       if (res.ok) {
         toast({
           title: "Success",
-          description: "Logged in successfully",
+          description: "Account created successfully",
         });
-        setLocation("/");
+        setLocation("/login");
       } else {
-        console.error('Login failed:', data.error);
         toast({
           title: "Error",
-          description: data.error || "Failed to login. Please check your credentials.",
+          description: data.error || "Failed to create account",
           variant: "destructive",
         });
       }
     } catch (error) {
-      console.error('Login error:', error);
+      console.error('Registration error:', error);
       toast({
         title: "Error",
         description: "Network error. Please try again.",
@@ -76,7 +74,7 @@ export default function Login() {
       <Card className="w-full max-w-md">
         <CardHeader>
           <CardTitle className="text-2xl font-bold text-center">
-            Login to Monitor
+            Create Account
           </CardTitle>
         </CardHeader>
         <CardContent>
@@ -114,29 +112,41 @@ export default function Login() {
                 )}
               />
 
+              <FormField
+                control={form.control}
+                name="apiKey"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>API Key</FormLabel>
+                    <FormControl>
+                      <Input
+                        placeholder="Enter your API key"
+                        {...field}
+                      />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+
               <Button
                 type="submit"
                 className="w-full"
                 disabled={isLoading}
               >
-                {isLoading ? "Logging in..." : "Login"}
+                {isLoading ? "Creating account..." : "Create Account"}
               </Button>
-
-              <p className="text-sm text-center text-muted-foreground mt-4">
-                Don't have an account?{" "}
-                <Link href="/register">
-                  <a className="text-primary hover:underline">Register</a>
-                </Link>
-              </p>
-
-              <p className="text-sm text-center text-muted-foreground mt-4">
-                Default admin credentials:<br />
-                Username: admin<br />
-                Password: admin123
-              </p>
             </form>
           </Form>
         </CardContent>
+        <CardFooter className="justify-center">
+          <p className="text-sm text-muted-foreground">
+            Already have an account?{" "}
+            <Link href="/login">
+              <a className="text-primary hover:underline">Login</a>
+            </Link>
+          </p>
+        </CardFooter>
       </Card>
     </div>
   );

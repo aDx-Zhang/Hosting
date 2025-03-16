@@ -1,11 +1,13 @@
 import { Router } from "express";
 import { authService } from "../services/auth";
-import { loginSchema, apiKeySchema } from "@shared/schema";
+import { loginSchema, apiKeySchema, registerSchema } from "@shared/schema"; // Import registerSchema
 import { log } from "../vite";
 import { db } from '../db';
 import { users as usersTable, apiKeys as apiKeysTable } from '@shared/schema';
 import { eq, and, gte } from "drizzle-orm";
 import { nanoid } from "nanoid";
+import { hash, SALT_ROUNDS } from '../utils/hash'; // Assuming hash function exists
+
 
 declare module "express-session" {
   interface SessionData {
@@ -177,6 +179,76 @@ router.get("/api-keys", async (req, res) => {
   } catch (error) {
     log(`Error fetching API keys: ${error}`);
     res.status(500).json({ error: "Failed to fetch API keys" });
+  }
+});
+
+// Add registration route with API key validation
+router.post("/register", async (req, res) => {
+  try {
+    const { username, password, apiKey } = registerSchema.parse(req.body);
+
+    // Check if username already exists
+    const existingUser = await db.select()
+      .from(usersTable)
+      .where(eq(usersTable.username, username));
+
+    if (existingUser.length > 0) {
+      return res.status(400).json({
+        error: "Username already exists",
+        message: "Please choose a different username"
+      });
+    }
+
+    // Validate API key
+    const [validKey] = await db.select()
+      .from(apiKeysTable)
+      .where(
+        and(
+          eq(apiKeysTable.key, apiKey),
+          eq(apiKeysTable.active, 1),
+          gte(apiKeysTable.expiresAt, new Date())
+        )
+      );
+
+    if (!validKey) {
+      return res.status(400).json({
+        error: "Invalid API key",
+        message: "The provided API key is invalid or expired"
+      });
+    }
+
+    // Create user
+    const hashedPassword = await hash(password, SALT_ROUNDS);
+    const [user] = await db.insert(usersTable)
+      .values({
+        username,
+        password: hashedPassword,
+        role: 'user'
+      })
+      .returning();
+
+    // Update API key with user ID
+    await db.update(apiKeysTable)
+      .set({ userId: user.id })
+      .where(eq(apiKeysTable.key, apiKey));
+
+    // Set up session
+    req.session.userId = user.id;
+
+    res.status(201).json({
+      success: true,
+      user: {
+        id: user.id,
+        username: user.username,
+        role: user.role
+      }
+    });
+  } catch (error) {
+    log(`Registration error: ${error}`);
+    res.status(400).json({
+      error: "Invalid request",
+      message: "Please check your input and try again"
+    });
   }
 });
 

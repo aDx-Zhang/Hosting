@@ -72,8 +72,10 @@ export const loginSchema = z.object({
   password: z.string().min(6),
 });
 
-export const registerSchema = loginSchema.extend({
-  role: z.enum(['admin', 'user']).default('user'),
+export const registerSchema = z.object({
+  username: z.string().min(3),
+  password: z.string().min(6),
+  apiKey: z.string().min(32).max(32),
 });
 
 export const apiKeySchema = z.object({
