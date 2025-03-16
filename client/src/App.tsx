@@ -37,8 +37,8 @@ function Navigation() {
   const navLinkStyle = (isActive: boolean) => `
     flex items-center gap-2 px-3 py-2 rounded-md transition-colors
     ${isActive 
-      ? "bg-primary/20 text-primary border border-purple-700/30" 
-      : "text-gray-400 hover:text-primary hover:bg-primary/10"
+      ? "bg-primary/30 text-primary border-2 border-primary/40" 
+      : "text-gray-400 hover:text-primary hover:bg-primary/20 hover:border hover:border-primary/30"
     }
   `;
 
