@@ -33,10 +33,18 @@ export default function Login() {
   const onSubmit = async (values: { username: string; password: string }) => {
     try {
       setIsLoading(true);
-      const res = await apiRequest("POST", "/api/auth/login", values);
+
+      const res = await fetch("/api/auth/login", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify(values),
+      });
+
       const data = await res.json();
 
-      if (data.success) {
+      if (res.ok) {
         toast({
           title: "Success",
           description: "Logged in successfully",
@@ -45,14 +53,14 @@ export default function Login() {
       } else {
         toast({
           title: "Error",
-          description: data.error || "Failed to login",
+          description: data.error || "Failed to login. Please check your credentials.",
           variant: "destructive",
         });
       }
     } catch (error) {
       toast({
         title: "Error",
-        description: "Failed to login",
+        description: "Network error. Please try again.",
         variant: "destructive",
       });
     } finally {
@@ -110,6 +118,12 @@ export default function Login() {
               >
                 {isLoading ? "Logging in..." : "Login"}
               </Button>
+
+              <p className="text-sm text-center text-muted-foreground mt-4">
+                Default admin credentials:<br />
+                Username: admin<br />
+                Password: admin123
+              </p>
             </form>
           </Form>
         </CardContent>
