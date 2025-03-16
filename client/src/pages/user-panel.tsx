@@ -95,15 +95,17 @@ export default function UserPanel() {
 
   if (isLoading) {
     return (
-      <div className="flex items-center justify-center min-h-screen bg-[#1a1625]">
+      <div className="flex items-center justify-center min-h-screen bg-[#2a1f3d]">
         <Loader2 className="h-8 w-8 animate-spin text-primary" />
       </div>
     );
   }
 
   return (
-    <div className="min-h-screen bg-[#1a1625]">
-      <div className="container mx-auto py-8 px-4">
+    <div className="min-h-screen bg-[#2a1f3d] relative overflow-hidden">
+      <div className="absolute inset-0 w-full h-full animate-gradient" />
+      <div className="absolute inset-0 bg-grid-white/[0.02] -z-10" />
+      <div className="container mx-auto py-8 px-4 relative z-10">
         <div className="flex items-center justify-between mb-8">
           <h1 className="text-3xl font-bold text-white">
             API Key Time Remaining
@@ -163,7 +165,7 @@ export default function UserPanel() {
                   placeholder="Enter API key"
                   value={apiKey}
                   onChange={(e) => setApiKey(e.target.value)}
-                  className="bg-[#1a1625] border-purple-700/30"
+                  className="bg-[#2a1f3d] border-purple-700/30"
                 />
                 <Button
                   onClick={() => apiKey && addKeyMutation.mutate(apiKey)}
