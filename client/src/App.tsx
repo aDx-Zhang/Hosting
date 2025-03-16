@@ -11,6 +11,8 @@ import { Bell, Settings, User as UserIcon, Menu } from "lucide-react";
 import { Redirect } from "wouter";
 import Register from "@/pages/register";
 import UserPanel from "@/pages/user-panel";
+import { Layout } from "@/components/layout";
+import { LoadingIndicator } from "@/components/ui/loading-indicator";
 import {
   Sheet,
   SheetContent,
@@ -19,6 +21,7 @@ import {
   SheetTrigger,
 } from "@/components/ui/sheet";
 import { Separator } from "@/components/ui/separator";
+import { AnimatePresence } from "framer-motion";
 
 function Navigation() {
   const [location] = useLocation();
@@ -29,9 +32,9 @@ function Navigation() {
   }
 
   return (
-    <header className="bg-background border-b border-border">
-      <div className="container mx-auto px-4">
-        <div className="flex items-center justify-between h-16">
+    <header className="sticky top-0 z-50">
+      <div className="w-full bg-[#2a1f3d]/95 backdrop-blur-sm border-b border-purple-700/30">
+        <div className="container mx-auto flex items-center justify-between py-4 px-4">
           <div className="flex items-center gap-4">
             <Sheet>
               <SheetTrigger asChild>
@@ -102,33 +105,11 @@ function Navigation() {
   );
 }
 
-function AdminRoute({ component: Component }: { component: React.ComponentType }) {
-  const { user, isLoading } = useAuth();
-
-  if (isLoading) {
-    return (
-      <div className="flex items-center justify-center min-h-screen">
-        <div className="h-8 w-8 animate-spin text-primary">⏳</div>
-      </div>
-    );
-  }
-
-  if (!user || user.role !== 'admin') {
-    return <Redirect to="/" />;
-  }
-
-  return <Component />;
-}
-
 function ProtectedRoute({ component: Component }: { component: React.ComponentType }) {
   const { user, isLoading } = useAuth();
 
   if (isLoading) {
-    return (
-      <div className="flex items-center justify-center min-h-screen">
-        <div className="h-8 w-8 animate-spin text-primary">⏳</div>
-      </div>
-    );
+    return <LoadingIndicator size="lg" />;
   }
 
   if (!user) {
@@ -138,25 +119,41 @@ function ProtectedRoute({ component: Component }: { component: React.ComponentTy
   return <Component />;
 }
 
-function Router() {
-  return (
-    <Switch>
-      <Route path="/login" component={Login} />
-      <Route path="/register" component={Register} />
-      <Route path="/" component={() => <ProtectedRoute component={Monitor} />} />
-      <Route path="/admin" component={() => <AdminRoute component={AdminPanel} />} />
-      <Route path="/user" component={() => <ProtectedRoute component={UserPanel} />} />
-      <Route component={NotFound} />
-    </Switch>
-  );
+function AdminRoute({ component: Component }: { component: React.ComponentType }) {
+  const { user, isLoading } = useAuth();
+
+  if (isLoading) {
+    return <LoadingIndicator size="lg" />;
+  }
+
+  if (!user || user.role !== 'admin') {
+    return <Redirect to="/" />;
+  }
+
+  return <Component />;
 }
 
 function App() {
+  const [location] = useLocation();
+
   return (
     <QueryClientProvider client={queryClient}>
       <div className="min-h-screen bg-background text-foreground">
         <Navigation />
-        <Router />
+        <AnimatePresence mode="wait">
+          <div key={location}>
+            <Layout>
+              <Switch>
+                <Route path="/login" component={Login} />
+                <Route path="/register" component={Register} />
+                <Route path="/" component={() => <ProtectedRoute component={Monitor} />} />
+                <Route path="/admin" component={() => <AdminRoute component={AdminPanel} />} />
+                <Route path="/user" component={() => <ProtectedRoute component={UserPanel} />} />
+                <Route component={NotFound} />
+              </Switch>
+            </Layout>
+          </div>
+        </AnimatePresence>
         <Toaster />
       </div>
     </QueryClientProvider>
