@@ -10,7 +10,7 @@ const app = express();
 app.use(express.json());
 app.use(express.urlencoded({ extended: false }));
 
-// Configure session middleware
+// Configure session middleware with proper settings
 const PostgresqlStore = pgSession(session);
 app.use(session({
   store: new PostgresqlStore({
@@ -23,10 +23,13 @@ app.use(session({
   saveUninitialized: false,
   cookie: {
     maxAge: 30 * 24 * 60 * 60 * 1000, // 30 days
-    secure: process.env.NODE_ENV === 'production'
+    secure: process.env.NODE_ENV === 'production',
+    httpOnly: true,
+    sameSite: 'lax'
   }
 }));
 
+// Request logging middleware
 app.use((req, res, next) => {
   const start = Date.now();
   const path = req.path;
@@ -57,7 +60,6 @@ app.use((req, res, next) => {
   next();
 });
 
-
 (async () => {
   try {
     // Create initial admin user
@@ -66,6 +68,7 @@ app.use((req, res, next) => {
 
     const server = await registerRoutes(app);
 
+    // Global error handler
     app.use((err: any, _req: Request, res: Response, _next: NextFunction) => {
       const status = err.status || err.statusCode || 500;
       const message = err.message || "Internal Server Error";
