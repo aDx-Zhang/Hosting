@@ -20,7 +20,7 @@ function formatMonitorTitle(params: SearchParams): string {
   const parts = [];
 
   if (params.query && params.query.trim()) {
-    parts.push(`"${params.query}"`);
+    parts.push(`"${params.query.trim()}"`);
   }
 
   if (params.minPrice !== undefined || params.maxPrice !== undefined) {
@@ -64,11 +64,9 @@ export default function Monitor() {
         const data = await res.json();
         setMonitors(data.map((monitor: any) => ({
           id: monitor.id.toString(),
-          params: {
-            ...monitor.params,
-            query: monitor.params.query || "", 
-            marketplace: monitor.params.marketplace || "all"
-          },
+          params: typeof monitor.params === 'string' 
+            ? JSON.parse(monitor.params)
+            : monitor.params,
           products: []
         })));
       } catch (error) {

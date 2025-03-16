@@ -35,7 +35,7 @@ class MonitoringService {
             if (result.status === 'fulfilled') {
               result.value.forEach(async (product) => {
                 // Skip if product doesn't match price range
-                const productPrice = parseFloat(product.price);
+                const productPrice = Number(product.price);
                 if (params.minPrice !== undefined && productPrice < params.minPrice) {
                   log(`Skipping product ${product.title} (price ${product.price} < min ${params.minPrice})`);
                   return;
