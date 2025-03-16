@@ -1,4 +1,5 @@
-import { AlertCircle, CheckCircle2, Loader2 } from "lucide-react";
+import { Loader2 } from "lucide-react";
+import { AnimatedEmoji } from "./animated-emoji";
 
 interface ConnectionStatusProps {
   isConnected: boolean;
@@ -9,6 +10,7 @@ export function ConnectionStatus({ isConnected, isConnecting }: ConnectionStatus
   if (isConnecting) {
     return (
       <div className="flex items-center gap-2 text-muted-foreground">
+        <AnimatedEmoji state="connecting" className="text-lg" />
         <Loader2 className="h-4 w-4 animate-spin" />
         <span>Connecting to real-time updates...</span>
       </div>
@@ -18,7 +20,7 @@ export function ConnectionStatus({ isConnected, isConnecting }: ConnectionStatus
   if (!isConnected) {
     return (
       <div className="flex items-center gap-2 text-destructive">
-        <AlertCircle className="h-4 w-4" />
+        <AnimatedEmoji state="disconnected" className="text-lg" />
         <span>Connection lost. Attempting to reconnect...</span>
       </div>
     );
@@ -26,7 +28,7 @@ export function ConnectionStatus({ isConnected, isConnecting }: ConnectionStatus
 
   return (
     <div className="flex items-center gap-2 text-green-600">
-      <CheckCircle2 className="h-4 w-4" />
+      <AnimatedEmoji state="connected" className="text-lg" />
       <span>Connected to real-time updates</span>
     </div>
   );
