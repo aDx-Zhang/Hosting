@@ -140,51 +140,66 @@ export default function Monitor() {
 
       <main className="container mx-auto px-4 py-8">
         <div className="max-w-4xl mx-auto">
-          <Tabs defaultValue="active" className="space-y-4">
-            <TabsList className="grid w-full grid-cols-2">
-              <TabsTrigger value="active">Active Monitors</TabsTrigger>
-              <TabsTrigger value="create">Create Monitor</TabsTrigger>
-            </TabsList>
+          <Tabs defaultValue="active" className="space-y-6">
+            <div className="bg-white rounded-lg shadow p-4">
+              <TabsList className="grid w-full grid-cols-2 gap-4 p-2 bg-muted rounded-lg">
+                <TabsTrigger 
+                  value="active" 
+                  className="data-[state=active]:bg-primary data-[state=active]:text-primary-foreground rounded-md py-3 transition-all"
+                >
+                  Active Monitors
+                </TabsTrigger>
+                <TabsTrigger 
+                  value="create"
+                  className="data-[state=active]:bg-primary data-[state=active]:text-primary-foreground rounded-md py-3 transition-all"
+                >
+                  Create Monitor
+                </TabsTrigger>
+              </TabsList>
+            </div>
 
-            <TabsContent value="active" className="space-y-4">
+            <TabsContent value="active" className="mt-6 space-y-6">
               {monitors.length === 0 ? (
-                <div className="text-center py-8 bg-white rounded-lg shadow">
+                <div className="text-center py-12 bg-white rounded-lg shadow border-2 border-dashed border-muted">
                   <p className="text-muted-foreground">No active monitors. Create one to start tracking items.</p>
                 </div>
               ) : (
-                <div className="space-y-4">
+                <div className="space-y-6">
                   {monitors.map((monitor) => (
-                    <div key={monitor.id} className="bg-white rounded-lg shadow p-4">
-                      <div className="flex items-center justify-between mb-4">
-                        <div>
-                          <h3 className="font-semibold">
-                            Monitoring: {formatMonitorTitle(monitor.params)}
-                          </h3>
-                          <p className="text-sm text-muted-foreground">
-                            {formatUpdateFrequency(monitor.params.updateFrequency)}
-                          </p>
-                          {(monitor.params.minPrice !== undefined || monitor.params.maxPrice !== undefined) && (
-                            <p className="text-sm text-muted-foreground">
-                              Price range: {monitor.params.minPrice || 0} - {monitor.params.maxPrice || '∞'} PLN
+                    <div key={monitor.id} className="bg-white rounded-lg shadow-md border border-border/50 hover:border-border transition-colors">
+                      <div className="p-6">
+                        <div className="flex items-center justify-between mb-6">
+                          <div>
+                            <h3 className="text-lg font-semibold">
+                              {formatMonitorTitle(monitor.params)}
+                            </h3>
+                            <p className="text-sm text-muted-foreground mt-1">
+                              {formatUpdateFrequency(monitor.params.updateFrequency)}
                             </p>
-                          )}
+                            {(monitor.params.minPrice !== undefined || monitor.params.maxPrice !== undefined) && (
+                              <p className="text-sm text-muted-foreground mt-1">
+                                Price range: {monitor.params.minPrice || 0} - {monitor.params.maxPrice || '∞'} PLN
+                              </p>
+                            )}
+                          </div>
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            onClick={() => stopMonitor(monitor.id)}
+                            className="hover:bg-destructive/10 hover:text-destructive"
+                          >
+                            <X className="h-4 w-4" />
+                          </Button>
                         </div>
-                        <Button
-                          variant="ghost"
-                          size="icon"
-                          onClick={() => stopMonitor(monitor.id)}
-                        >
-                          <X className="h-4 w-4" />
-                        </Button>
-                      </div>
 
-                      <ProductGrid
-                        products={monitor.products}
-                        isLoading={false}
-                        isMonitoring={true}
-                        monitorId={monitor.id}
-                        onNewProducts={(products) => updateMonitorProducts(monitor.id, products)}
-                      />
+                        <ProductGrid
+                          products={monitor.products}
+                          isLoading={false}
+                          isMonitoring={true}
+                          monitorId={monitor.id}
+                          onNewProducts={(products) => updateMonitorProducts(monitor.id, products)}
+                        />
+                      </div>
                     </div>
                   ))}
                 </div>
@@ -192,28 +207,30 @@ export default function Monitor() {
             </TabsContent>
 
             <TabsContent value="create">
-              <div className="bg-white rounded-lg shadow p-6">
-                <Alert className="mb-6">
-                  <AlertTriangle className="h-4 w-4" />
-                  <AlertDescription>
-                    Set your search criteria and update frequency, then start monitoring. You can have multiple monitors running at the same time.
-                  </AlertDescription>
-                </Alert>
+              <div className="bg-white rounded-lg shadow-md border border-border/50">
+                <div className="p-6">
+                  <Alert className="mb-6 bg-primary/5 border-primary/20">
+                    <AlertTriangle className="h-4 w-4 text-primary" />
+                    <AlertDescription className="text-primary/80">
+                      Set your search criteria and update frequency, then start monitoring. You can have multiple monitors running at the same time.
+                    </AlertDescription>
+                  </Alert>
 
-                <SearchFilters
-                  onSearch={setSearchParams}
-                  defaultValues={searchParams}
-                  hideSearchButton={true}
-                  showFrequencySlider={true}
-                />
+                  <SearchFilters
+                    onSearch={setSearchParams}
+                    defaultValues={searchParams}
+                    hideSearchButton={true}
+                    showFrequencySlider={true}
+                  />
 
-                <div className="mt-4">
-                  <Button
-                    onClick={startNewMonitor}
-                    className="w-full bg-green-600 hover:bg-green-700"
-                  >
-                    Start New Monitor
-                  </Button>
+                  <div className="mt-6">
+                    <Button
+                      onClick={startNewMonitor}
+                      className="w-full bg-primary hover:bg-primary/90 text-primary-foreground"
+                    >
+                      Start New Monitor
+                    </Button>
+                  </div>
                 </div>
               </div>
             </TabsContent>
