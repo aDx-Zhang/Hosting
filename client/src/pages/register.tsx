@@ -68,14 +68,10 @@ export default function Register() {
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-background p-4 relative overflow-hidden">
-      <div className="absolute inset-0 w-full h-full bg-background/50">
-        <div className="absolute inset-0 w-full h-full animate-gradient bg-[length:200%_200%] bg-gradient-to-br from-primary/20 via-primary/5 to-transparent"></div>
-      </div>
+    <div className="min-h-screen flex items-center justify-center relative overflow-hidden">
+      <div className="absolute inset-0 w-full h-full animate-gradient" />
 
-      <div className="cursor-ripple" />
-
-      <Card className="w-full max-w-md bg-card/30 backdrop-blur-xl border-border/50 relative z-10">
+      <Card className="w-full max-w-md bg-card/30 backdrop-blur-xl border-border/50 relative z-10 card-shine">
         <CardHeader className="space-y-4 pb-6">
           <div className="flex justify-center">
             <h1 className="text-3xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-primary/80 to-primary">
@@ -98,7 +94,7 @@ export default function Register() {
                     <FormControl>
                       <Input 
                         placeholder="Enter your username" 
-                        className="bg-background/50 border-border/50"
+                        className="bg-background/50 border-border/50 animate-input"
                         {...field} 
                       />
                     </FormControl>
@@ -117,7 +113,7 @@ export default function Register() {
                       <Input
                         type="password"
                         placeholder="Enter your password"
-                        className="bg-background/50 border-border/50"
+                        className="bg-background/50 border-border/50 animate-input"
                         {...field}
                       />
                     </FormControl>
@@ -135,7 +131,7 @@ export default function Register() {
                     <FormControl>
                       <Input
                         placeholder="Enter your API key"
-                        className="bg-background/50 border-border/50"
+                        className="bg-background/50 border-border/50 animate-input"
                         {...field}
                       />
                     </FormControl>
@@ -146,7 +142,7 @@ export default function Register() {
 
               <Button
                 type="submit"
-                className="w-full bg-primary hover:bg-primary/90"
+                className="w-full bg-primary hover:bg-primary/90 animate-button"
                 disabled={isLoading}
               >
                 {isLoading ? "Creating account..." : "Create Account"}
