@@ -11,6 +11,7 @@ export const products = pgTable("products", {
   image: text("image").notNull(),
   marketplace: text("marketplace").notNull(),
   originalUrl: text("original_url").notNull(),
+  foundAt: timestamp("found_at").defaultNow().notNull(),
 });
 
 export const monitors = pgTable("monitors", {
@@ -51,7 +52,6 @@ export const apiKeys = pgTable("api_keys", {
   durationDays: integer("duration_days").notNull(),
 });
 
-// Update search params schema
 export const searchParamsSchema = z.object({
   query: z.string(),
   marketplace: z.enum(['all', 'olx', 'vinted', 'allegro']).optional(),
@@ -62,12 +62,12 @@ export const searchParamsSchema = z.object({
 
 export type SearchParams = z.infer<typeof searchParamsSchema>;
 
-// Existing schemas
 export const insertProductSchema = createInsertSchema(products);
 export type InsertProduct = z.infer<typeof insertProductSchema>;
 export type Product = typeof products.$inferSelect;
+export type Monitor = typeof monitors.$inferSelect;
+export type MonitorProduct = typeof monitorProducts.$inferSelect;
 
-// New schemas for authentication
 export const loginSchema = z.object({
   username: z.string().min(3),
   password: z.string().min(6),

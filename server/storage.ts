@@ -1,4 +1,4 @@
-import { type Product, type InsertProduct, type SearchParams } from "@shared/schema";
+import { type Product, type InsertProduct, type SearchParams, type MonitorProduct } from "@shared/schema";
 import { products, monitors, monitorProducts, apiKeys } from "@shared/schema";
 import { broadcastUpdate } from "./routes";
 import { log } from "./vite";
@@ -11,8 +11,8 @@ export interface IStorage {
   getProduct(id: number): Promise<Product | undefined>;
   createProduct(product: InsertProduct): Promise<Product>;
   createMonitor(params: SearchParams, userId: number): Promise<{ id: number }>;
-  getActiveMonitors(userId: number): Promise<{ id: number; params: SearchParams }[]>;
-  getMonitorById(id: number): Promise<{ id: number; params: SearchParams } | undefined>;
+  getActiveMonitors(userId: number): Promise<{ id: number; params: SearchParams; createdAt: Date }[]>;
+  getMonitorById(id: number): Promise<{ id: number; params: SearchParams; createdAt: Date } | undefined>;
   deactivateMonitor(id: number): Promise<void>;
   addProductToMonitor(monitorId: number, product: Product): Promise<void>;
   getUserSubscriptionInfo(userId: number): Promise<{ expiresAt: Date; active: boolean } | null>;
@@ -24,14 +24,12 @@ export class DatabaseStorage implements IStorage {
       const query = params.query || '';
       log(`Searching for products with query: ${query}`);
 
-      // Get products from marketplaces
       const results = await Promise.allSettled([
         marketplaceService.searchOLX(query),
         marketplaceService.searchAllegro(query),
         marketplaceService.searchVinted(query)
       ]);
 
-      // Combine successful results
       let allProducts: Product[] = [];
 
       results.forEach((result) => {
@@ -42,7 +40,6 @@ export class DatabaseStorage implements IStorage {
 
       log(`Total products found: ${allProducts.length}`);
 
-      // Apply filters
       let filteredProducts = allProducts;
 
       if (params.minPrice !== undefined) {
@@ -85,16 +82,18 @@ export class DatabaseStorage implements IStorage {
     const [monitor] = await db.insert(monitors).values({
       params: params,
       active: 1,
-      userId
+      userId,
+      createdAt: new Date()
     }).returning();
 
     return { id: monitor.id };
   }
 
-  async getActiveMonitors(userId: number): Promise<{ id: number; params: SearchParams }[]> {
+  async getActiveMonitors(userId: number): Promise<{ id: number; params: SearchParams; createdAt: Date }[]> {
     return await db.select({
       id: monitors.id,
-      params: monitors.params
+      params: monitors.params,
+      createdAt: monitors.createdAt
     })
     .from(monitors)
     .where(
@@ -105,10 +104,11 @@ export class DatabaseStorage implements IStorage {
     );
   }
 
-  async getMonitorById(id: number): Promise<{ id: number; params: SearchParams } | undefined> {
+  async getMonitorById(id: number): Promise<{ id: number; params: SearchParams; createdAt: Date } | undefined> {
     const [monitor] = await db.select({
       id: monitors.id,
-      params: monitors.params
+      params: monitors.params,
+      createdAt: monitors.createdAt
     })
     .from(monitors)
     .where(eq(monitors.id, id));
@@ -138,15 +138,21 @@ export class DatabaseStorage implements IStorage {
       productId = existingProduct.id;
     } else {
       const [newProduct] = await db.insert(products)
-        .values(product)
+        .values({
+          ...product,
+          foundAt: new Date()
+        })
         .returning();
       productId = newProduct.id;
     }
 
-    await db.insert(monitorProducts).values({
-      monitorId,
-      productId
-    });
+    const [monitorProduct] = await db.insert(monitorProducts)
+      .values({
+        monitorId,
+        productId,
+        createdAt: new Date()
+      })
+      .returning();
 
     broadcastUpdate({
       type: 'new_monitored_products',
@@ -167,7 +173,7 @@ export class DatabaseStorage implements IStorage {
       )
       .orderBy(desc(apiKeys.expiresAt));
 
-    if (!activeKey) return null;
+    if (!activeKey?.expiresAt) return null;
 
     return {
       expiresAt: activeKey.expiresAt,

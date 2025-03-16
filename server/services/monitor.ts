@@ -31,6 +31,7 @@ class MonitoringService {
             marketplaceService.searchVinted(params.query || '')
           ]);
 
+          const newProducts: Product[] = [];
           results.forEach((result) => {
             if (result.status === 'fulfilled') {
               result.value.forEach(async (product) => {
@@ -53,10 +54,19 @@ class MonitoringService {
 
                 // Store product in database and associate with monitor
                 await storage.addProductToMonitor(monitorId, product);
+                newProducts.push(product);
                 log(`Found new product: ${product.title} for monitor ${monitorId}`);
               });
             }
           });
+
+          if (newProducts.length > 0) {
+            broadcastUpdate({
+              type: 'new_monitored_products',
+              products: newProducts,
+              monitorId: monitorId.toString()
+            });
+          }
         } catch (error) {
           log(`Error in monitor ${monitorId}: ${error}`);
         }
