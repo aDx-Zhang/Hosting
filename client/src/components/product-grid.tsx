@@ -27,14 +27,9 @@ export function ProductGrid({
   monitorId,
   onNewProducts 
 }: ProductGridProps) {
-  const [products, setProducts] = useState(initialProducts);
+  const [products, setProducts] = useState<Product[]>([]);
   const { toast } = useToast();
   const seenProducts = useRef(new Set<string>());
-
-  // Initialize seen products from initial products
-  initialProducts.forEach(product => {
-    seenProducts.current.add(`${product.originalUrl}-${product.marketplace}`);
-  });
 
   const isProductUnique = (product: Product) => {
     const key = `${product.originalUrl}-${product.marketplace}`;
@@ -55,6 +50,7 @@ export function ProductGrid({
             const uniqueProducts = update.products.filter(isProductUnique);
             if (uniqueProducts.length > 0) {
               onNewProducts?.(uniqueProducts);
+              setProducts(prev => [...uniqueProducts, ...prev]);
               toast({
                 title: 'New Products Found!',
                 description: `Found ${uniqueProducts.length} new items matching your criteria.`,
@@ -112,13 +108,13 @@ export function ProductGrid({
       );
     }
 
-    // Use the products from state instead of props
-    const displayProducts = products.length > 0 ? products : initialProducts;
+    // Use the products from state for display
+    const displayProducts = products;
 
     if (displayProducts.length === 0) {
       return (
         <div className="text-center py-8">
-          <p className="text-gray-500">No products found matching your criteria.</p>
+          <p className="text-gray-500">Monitoring for new products...</p>
         </div>
       );
     }
