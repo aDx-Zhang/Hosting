@@ -252,4 +252,27 @@ router.post("/register", async (req, res) => {
   }
 });
 
+// Add this route at the end of the file, before export
+router.get("/subscription", async (req, res) => {
+  if (!req.session.userId) {
+    return res.status(401).json({ error: "Not authenticated" });
+  }
+
+  try {
+    const subscriptionInfo = await storage.getUserSubscriptionInfo(req.session.userId);
+
+    if (!subscriptionInfo) {
+      return res.json({
+        active: false,
+        expiresAt: null
+      });
+    }
+
+    res.json(subscriptionInfo);
+  } catch (error) {
+    log(`Error fetching subscription info: ${error}`);
+    res.status(500).json({ error: "Failed to fetch subscription information" });
+  }
+});
+
 export { router as authRouter };

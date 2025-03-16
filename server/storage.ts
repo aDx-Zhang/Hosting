@@ -1,20 +1,21 @@
 import { type Product, type InsertProduct, type SearchParams } from "@shared/schema";
-import { products, monitors, monitorProducts } from "@shared/schema";
+import { products, monitors, monitorProducts, apiKeys } from "@shared/schema";
 import { broadcastUpdate } from "./routes";
 import { log } from "./vite";
 import { db } from "./db";
-import { eq, and, desc } from "drizzle-orm";
+import { eq, and, desc, gte } from "drizzle-orm";
 import { marketplaceService } from "./services/marketplaces";
 
 export interface IStorage {
   searchProducts(params: SearchParams): Promise<Product[]>;
   getProduct(id: number): Promise<Product | undefined>;
   createProduct(product: InsertProduct): Promise<Product>;
-  createMonitor(params: SearchParams): Promise<{ id: number }>;
-  getActiveMonitors(): Promise<{ id: number; params: SearchParams }[]>;
+  createMonitor(params: SearchParams, userId: number): Promise<{ id: number }>;
+  getActiveMonitors(userId: number): Promise<{ id: number; params: SearchParams }[]>;
   getMonitorById(id: number): Promise<{ id: number; params: SearchParams } | undefined>;
   deactivateMonitor(id: number): Promise<void>;
   addProductToMonitor(monitorId: number, product: Product): Promise<void>;
+  getUserSubscriptionInfo(userId: number): Promise<{ expiresAt: Date; active: boolean } | null>;
 }
 
 export class DatabaseStorage implements IStorage {
@@ -80,22 +81,28 @@ export class DatabaseStorage implements IStorage {
     return newProduct;
   }
 
-  async createMonitor(params: SearchParams): Promise<{ id: number }> {
+  async createMonitor(params: SearchParams, userId: number): Promise<{ id: number }> {
     const [monitor] = await db.insert(monitors).values({
       params: params,
-      active: 1
+      active: 1,
+      userId
     }).returning();
 
     return { id: monitor.id };
   }
 
-  async getActiveMonitors(): Promise<{ id: number; params: SearchParams }[]> {
+  async getActiveMonitors(userId: number): Promise<{ id: number; params: SearchParams }[]> {
     return await db.select({
       id: monitors.id,
       params: monitors.params
     })
     .from(monitors)
-    .where(eq(monitors.active, 1));
+    .where(
+      and(
+        eq(monitors.active, 1),
+        eq(monitors.userId, userId)
+      )
+    );
   }
 
   async getMonitorById(id: number): Promise<{ id: number; params: SearchParams } | undefined> {
@@ -146,6 +153,25 @@ export class DatabaseStorage implements IStorage {
       products: [product],
       monitorId: monitorId.toString()
     });
+  }
+  async getUserSubscriptionInfo(userId: number): Promise<{ expiresAt: Date; active: boolean } | null> {
+    const [activeKey] = await db.select()
+      .from(apiKeys)
+      .where(
+        and(
+          eq(apiKeys.userId, userId),
+          eq(apiKeys.active, 1),
+          gte(apiKeys.expiresAt, new Date())
+        )
+      )
+      .orderBy(desc(apiKeys.expiresAt));
+
+    if (!activeKey) return null;
+
+    return {
+      expiresAt: activeKey.expiresAt,
+      active: true
+    };
   }
 }
 

@@ -11,6 +11,7 @@ import { useAuth } from "@/hooks/use-auth";
 import { Loader2 } from "lucide-react";
 import { Redirect } from "wouter";
 import Register from "@/pages/register"; // Added import for Register component
+import UserPanel from "@/pages/user-panel"; // Added import for UserPanel component
 
 
 function Navigation() {
@@ -33,9 +34,13 @@ function Navigation() {
             <Link href="/monitor">
               <a className="text-primary hover:text-primary/80">Monitor</a>
             </Link>
-            {user?.role === 'admin' && (
+            {user?.role === 'admin' ? (
               <Link href="/admin">
                 <a className="text-primary hover:text-primary/80">Admin Panel</a>
+              </Link>
+            ) : (
+              <Link href="/user">
+                <a className="text-primary hover:text-primary/80">Account</a>
               </Link>
             )}
           </div>
@@ -98,6 +103,7 @@ function Router() {
       <Route path="/" component={() => <ProtectedRoute component={Home} />} />
       <Route path="/monitor" component={() => <ProtectedRoute component={Monitor} />} />
       <Route path="/admin" component={() => <AdminRoute component={AdminPanel} />} />
+      <Route path="/user" component={() => <ProtectedRoute component={UserPanel} />} />
       <Route component={NotFound} />
     </Switch>
   );

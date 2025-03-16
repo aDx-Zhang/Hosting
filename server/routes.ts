@@ -29,7 +29,10 @@ export async function registerRoutes(app: Express) {
 
   app.get("/api/monitors", async (req, res) => {
     try {
-      const monitors = await storage.getActiveMonitors();
+      if (!req.session.userId) {
+        return res.status(401).json({ error: "Not authenticated" });
+      }
+      const monitors = await storage.getActiveMonitors(req.session.userId);
       res.json(monitors);
     } catch (error) {
       log(`Error getting monitors: ${error}`);
