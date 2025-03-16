@@ -131,21 +131,21 @@ export default function Monitor() {
   };
 
   return (
-    <div className="min-h-screen bg-[#2a1f3d]">
+    <div className="min-h-screen bg-[#1a1428]">
       <main className="container mx-auto px-4 py-8">
         <div className="max-w-4xl mx-auto space-y-8">
           <Tabs defaultValue="active">
-            <div className="bg-[#2a1f3d] border border-purple-700/30 rounded-lg shadow-sm">
+            <div className="bg-[#241b35] border border-purple-700/30 rounded-lg shadow-sm">
               <TabsList className="w-full p-1 h-auto gap-1">
                 <TabsTrigger
                   value="active"
-                  className="flex-1 data-[state=active]:bg-primary/20 data-[state=active]:text-primary py-2.5 border-purple-700/30"
+                  className="flex-1 data-[state=active]:bg-primary/30 data-[state=active]:text-primary py-2.5 border-purple-700/30"
                 >
                   Active Monitors
                 </TabsTrigger>
                 <TabsTrigger
                   value="create"
-                  className="flex-1 data-[state=active]:bg-primary/20 data-[state=active]:text-primary py-2.5 border-purple-700/30"
+                  className="flex-1 data-[state=active]:bg-primary/30 data-[state=active]:text-primary py-2.5 border-purple-700/30"
                 >
                   Create Monitor
                 </TabsTrigger>
@@ -154,13 +154,13 @@ export default function Monitor() {
 
             <TabsContent value="active" className="space-y-6 mt-8">
               {monitors.length === 0 ? (
-                <div className="text-center py-16 bg-[#2a1f3d] rounded-lg border border-dashed border-purple-700/30">
+                <div className="text-center py-16 bg-[#241b35] rounded-lg border border-dashed border-purple-700/30">
                   <p className="text-gray-400">No active monitors. Create one to start tracking items.</p>
                 </div>
               ) : (
                 <div className="space-y-6">
                   {monitors.map((monitor) => (
-                    <div key={monitor.id} className="group bg-[#2a1f3d] rounded-lg border border-purple-700/30 shadow-sm hover:border-primary/20 hover:shadow-md transition-all">
+                    <div key={monitor.id} className="group bg-[#241b35] rounded-lg border border-purple-700/30 shadow-sm hover:border-primary/20 hover:shadow-md transition-all">
                       <div className="p-6">
                         <div className="flex items-center justify-between mb-6">
                           <div className="space-y-1">
@@ -201,7 +201,7 @@ export default function Monitor() {
             </TabsContent>
 
             <TabsContent value="create" className="mt-8">
-              <div className="bg-[#2a1f3d] rounded-lg border border-purple-700/30 shadow-sm">
+              <div className="bg-[#241b35] rounded-lg border border-purple-700/30 shadow-sm">
                 <div className="p-6 space-y-6">
                   <Alert className="bg-primary/5 border-primary/20">
                     <AlertTriangle className="h-4 w-4 text-primary" />

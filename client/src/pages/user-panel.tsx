@@ -81,18 +81,18 @@ export default function UserPanel() {
 
   if (isLoading) {
     return (
-      <div className="flex items-center justify-center min-h-screen bg-[#2a1f3d]">
+      <div className="flex items-center justify-center min-h-screen bg-[#1a1428]">
         <Loader2 className="h-8 w-8 animate-spin text-primary" />
       </div>
     );
   }
 
   return (
-    <div className="min-h-screen bg-[#2a1f3d] p-8">
+    <div className="min-h-screen bg-[#1a1428] p-8">
       <div className="container mx-auto">
         <div className="grid gap-6 max-w-2xl mx-auto">
           {subscription ? (
-            <div className="flex items-center justify-between p-4 bg-[#2a1f3d] rounded-lg border border-purple-700/30">
+            <div className="flex items-center justify-between p-4 bg-[#241b35] rounded-lg border border-purple-700/30">
               <div className="flex items-center gap-3">
                 {subscription.active ? (
                   <CheckCircle2 className="h-6 w-6 text-green-500" />
@@ -117,12 +117,12 @@ export default function UserPanel() {
               )}
             </div>
           ) : (
-            <div className="text-gray-400 bg-[#2a1f3d] p-4 rounded-lg border border-purple-700/30">
+            <div className="text-gray-400 bg-[#241b35] p-4 rounded-lg border border-purple-700/30">
               No active API key found. Enter your API key below to get started.
             </div>
           )}
 
-          <Card className="bg-[#2a1f3d] border-purple-700/30">
+          <Card className="bg-[#241b35] border-purple-700/30">
             <CardHeader>
               <CardTitle>Extend Access Time</CardTitle>
               <CardDescription>
@@ -135,7 +135,7 @@ export default function UserPanel() {
                   placeholder="Enter API key"
                   value={apiKey}
                   onChange={(e) => setApiKey(e.target.value)}
-                  className="bg-[#2a1f3d] border-purple-700/30"
+                  className="bg-[#241b35] border-purple-700/30"
                 />
                 <Button
                   onClick={() => apiKey && addKeyMutation.mutate(apiKey)}

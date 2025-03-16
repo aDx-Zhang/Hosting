@@ -44,7 +44,7 @@ function Navigation() {
 
   return (
     <header className="sticky top-0 z-50">
-      <div className="w-full bg-[#2a1f3d]/95 backdrop-blur-sm border-b border-purple-700/30">
+      <div className="w-full bg-[#1a1428]/95 backdrop-blur-sm border-b border-purple-700/30">
         <div className="container mx-auto flex items-center justify-between py-4 px-4">
           <div className="flex items-center gap-8">
             <h1 className="text-xl font-bold text-primary">FlipX</h1>
