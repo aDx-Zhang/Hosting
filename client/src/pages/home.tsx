@@ -12,7 +12,8 @@ export default function Home() {
     query: "",
     marketplace: "all",
     minPrice: undefined,
-    maxPrice: undefined
+    maxPrice: undefined,
+    updateFrequency: 30
   });
 
   const { data: products, isLoading, error } = useQuery<Product[]>({

@@ -1,13 +1,13 @@
-import { pgTable, text, serial, integer, timestamp } from "drizzle-orm/pg-core";
+import { pgTable, text, serial, integer, timestamp, numeric } from "drizzle-orm/pg-core";
 import { createInsertSchema } from "drizzle-zod";
 import { z } from "zod";
 
-// Update products table to remove location fields
+// Update products table to use numeric for price
 export const products = pgTable("products", {
   id: serial("id").primaryKey(),
   title: text("title").notNull(),
   description: text("description").notNull(),
-  price: text("price").notNull(),
+  price: numeric("price").notNull(),
   image: text("image").notNull(),
   marketplace: text("marketplace").notNull(),
   originalUrl: text("original_url").notNull(),
@@ -51,7 +51,7 @@ export const apiKeys = pgTable("api_keys", {
   durationDays: integer("duration_days").notNull(),
 });
 
-// Update search params to remove location fields
+// Update search params schema
 export const searchParamsSchema = z.object({
   query: z.string(),
   marketplace: z.enum(['all', 'olx', 'vinted', 'allegro']).optional(),

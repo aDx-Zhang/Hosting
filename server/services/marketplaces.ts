@@ -17,7 +17,6 @@ export class MarketplaceService {
   }
 
   private fixImageUrl(url: string): string {
-    // OLX sometimes returns dynamic image URLs with {width}x{height}
     if (url.includes('{width}x{height}')) {
       return url.replace('{width}x{height}', '800x600');
     }
@@ -57,8 +56,6 @@ export class MarketplaceService {
             image: photoUrl,
             marketplace: 'olx',
             originalUrl: item.url,
-            latitude: item.location?.lat || 52.2297,
-            longitude: item.location?.lon || 21.0122
           };
         });
       }
@@ -87,8 +84,6 @@ export class MarketplaceService {
       });
 
       const page = await browser.newPage();
-
-      // Set viewport and user agent
       await page.setViewport({ width: 1920, height: 1080 });
       await page.setUserAgent('Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36');
 
@@ -98,14 +93,11 @@ export class MarketplaceService {
       await page.goto(url, { waitUntil: 'networkidle0', timeout: 30000 });
       log('Page loaded, waiting for content...');
 
-      // Wait for the grid of items to load
       await page.waitForSelector('.feed-grid', { timeout: 20000 });
       log('Feed grid found, waiting for items...');
 
-      // Wait additional time for items to load
       await new Promise(resolve => setTimeout(resolve, 2000));
 
-      // Get all items
       const products = await page.evaluate(() => {
         const items = document.querySelectorAll('.feed-grid__item');
         return Array.from(items, item => {
@@ -114,7 +106,6 @@ export class MarketplaceService {
           const image = item.querySelector('img')?.getAttribute('src') || '';
           const link = item.querySelector('a')?.getAttribute('href') || '';
 
-          // Extract price from text like "100,00 zł"
           const priceMatch = priceText.match(/\d+([.,]\d+)?/);
           const price = priceMatch ? parseFloat(priceMatch[0].replace(',', '.')) : 0;
 
@@ -125,8 +116,6 @@ export class MarketplaceService {
             image,
             marketplace: 'vinted',
             originalUrl: link.startsWith('http') ? link : `https://www.vinted.pl${link}`,
-            latitude: 52.2297,
-            longitude: 21.0122
           };
         });
       });
