@@ -61,6 +61,14 @@ export default function Monitor() {
   const { toast } = useToast();
   const { user } = useAuth();
 
+  // Load deleted monitor IDs from localStorage on mount
+  useEffect(() => {
+    const storedIds = localStorage.getItem('deletedMonitorIds');
+    if (storedIds) {
+      deletedMonitorIds.current = new Set(JSON.parse(storedIds));
+    }
+  }, []);
+
   useEffect(() => {
     const loadMonitors = async () => {
       try {
@@ -133,8 +141,9 @@ export default function Monitor() {
       console.log("Stopping monitor:", monitorId);
       await apiRequest("POST", "/api/monitor/stop", { monitorId });
 
-      // Add to deleted monitors set
+      // Add to deleted monitors set and persist to localStorage
       deletedMonitorIds.current.add(monitorId);
+      localStorage.setItem('deletedMonitorIds', JSON.stringify([...deletedMonitorIds.current]));
 
       // Remove from state
       setMonitors(prev => prev.filter(m => m.id !== monitorId));
