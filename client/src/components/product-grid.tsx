@@ -10,6 +10,7 @@ import { Button } from "@/components/ui/button";
 import { MarketplaceBadge } from "./marketplace-badge";
 import { useWebSocket } from "@/hooks/use-websocket";
 import { useToast } from "@/hooks/use-toast";
+import { ConnectionStatus } from "./connection-status";
 
 interface ProductGridProps {
   products: Product[];
@@ -56,81 +57,90 @@ export function ProductGrid({
     }
   }, [toast, monitorId, onNewProducts]);
 
-  const { isConnected } = useWebSocket({ onMessage: isMonitoring ? handleRealTimeUpdate : undefined });
+  const { isConnected, isConnecting } = useWebSocket({ 
+    onMessage: isMonitoring ? handleRealTimeUpdate : undefined 
+  });
 
-  if (!isConnected && isMonitoring) {
+  if (isMonitoring) {
     return (
-      <div className="text-center py-8">
-        <p className="text-destructive">Connecting to real-time updates...</p>
+      <div>
+        <div className="mb-4">
+          <ConnectionStatus isConnected={isConnected} isConnecting={isConnecting} />
+        </div>
+        {renderProducts()}
       </div>
     );
   }
 
-  if (isLoading) {
+  return renderProducts();
+
+  function renderProducts() {
+    if (isLoading) {
+      return (
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+          {[...Array(6)].map((_, i) => (
+            <Card key={i} className="animate-pulse">
+              <div className="h-48 bg-gray-200 rounded-t-lg" />
+              <CardContent className="p-4">
+                <div className="h-4 bg-gray-200 rounded w-3/4 mb-2" />
+                <div className="h-4 bg-gray-200 rounded w-1/2" />
+              </CardContent>
+            </Card>
+          ))}
+        </div>
+      );
+    }
+
+    // Use the products from state instead of props
+    const displayProducts = products.length > 0 ? products : initialProducts;
+
+    if (displayProducts.length === 0) {
+      return (
+        <div className="text-center py-8">
+          <p className="text-gray-500">No products found matching your criteria.</p>
+        </div>
+      );
+    }
+
     return (
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-        {[...Array(6)].map((_, i) => (
-          <Card key={i} className="animate-pulse">
-            <div className="h-48 bg-gray-200 rounded-t-lg" />
-            <CardContent className="p-4">
-              <div className="h-4 bg-gray-200 rounded w-3/4 mb-2" />
-              <div className="h-4 bg-gray-200 rounded w-1/2" />
+        {displayProducts.map((product) => (
+          <Card key={product.id} className="overflow-hidden">
+            <div className="h-48 relative">
+              <img
+                src={product.image}
+                alt={product.title}
+                className="w-full h-full object-cover"
+              />
+              <div className="absolute top-2 right-2">
+                <MarketplaceBadge marketplace={product.marketplace} />
+              </div>
+            </div>
+            <CardHeader className="p-4">
+              <h3 className="font-semibold text-lg line-clamp-1">{product.title}</h3>
+              <p className="text-2xl font-bold text-primary">
+                {product.price.toLocaleString('pl-PL', {
+                  style: 'currency',
+                  currency: 'PLN',
+                })}
+              </p>
+            </CardHeader>
+            <CardContent className="p-4 pt-0">
+              <p className="text-muted-foreground line-clamp-2">
+                {product.description}
+              </p>
             </CardContent>
+            <CardFooter className="p-4">
+              <Button
+                className="w-full"
+                onClick={() => window.open(product.originalUrl, '_blank')}
+              >
+                View on {product.marketplace.toUpperCase()}
+              </Button>
+            </CardFooter>
           </Card>
         ))}
       </div>
     );
   }
-
-  // Use the products from state instead of props
-  const displayProducts = products.length > 0 ? products : initialProducts;
-
-  if (displayProducts.length === 0) {
-    return (
-      <div className="text-center py-8">
-        <p className="text-gray-500">No products found matching your criteria.</p>
-      </div>
-    );
-  }
-
-  return (
-    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-      {displayProducts.map((product) => (
-        <Card key={product.id} className="overflow-hidden">
-          <div className="h-48 relative">
-            <img
-              src={product.image}
-              alt={product.title}
-              className="w-full h-full object-cover"
-            />
-            <div className="absolute top-2 right-2">
-              <MarketplaceBadge marketplace={product.marketplace} />
-            </div>
-          </div>
-          <CardHeader className="p-4">
-            <h3 className="font-semibold text-lg line-clamp-1">{product.title}</h3>
-            <p className="text-2xl font-bold text-primary">
-              {product.price.toLocaleString('pl-PL', {
-                style: 'currency',
-                currency: 'PLN',
-              })}
-            </p>
-          </CardHeader>
-          <CardContent className="p-4 pt-0">
-            <p className="text-muted-foreground line-clamp-2">
-              {product.description}
-            </p>
-          </CardContent>
-          <CardFooter className="p-4">
-            <Button
-              className="w-full"
-              onClick={() => window.open(product.originalUrl, '_blank')}
-            >
-              View on {product.marketplace.toUpperCase()}
-            </Button>
-          </CardFooter>
-        </Card>
-      ))}
-    </div>
-  );
 }

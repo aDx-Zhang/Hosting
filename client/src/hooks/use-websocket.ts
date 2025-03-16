@@ -9,6 +9,7 @@ export function useWebSocket({ onMessage }: WebSocketHookOptions = {}) {
   const socket = useRef<WebSocket | null>(null);
   const reconnectAttempt = useRef(0);
   const [isConnected, setIsConnected] = useState(false);
+  const [isConnecting, setIsConnecting] = useState(false);
   const { toast } = useToast();
   const maxReconnectAttempts = 5;
   const reconnectTimeoutRef = useRef<NodeJS.Timeout>();
@@ -20,6 +21,8 @@ export function useWebSocket({ onMessage }: WebSocketHookOptions = {}) {
     }
 
     try {
+      setIsConnecting(true);
+
       // Clean up existing socket if any
       if (socket.current) {
         socket.current.close();
@@ -35,6 +38,7 @@ export function useWebSocket({ onMessage }: WebSocketHookOptions = {}) {
       ws.onopen = () => {
         console.log('WebSocket connected');
         setIsConnected(true);
+        setIsConnecting(false);
         reconnectAttempt.current = 0;
       };
 
@@ -43,6 +47,7 @@ export function useWebSocket({ onMessage }: WebSocketHookOptions = {}) {
           const data = JSON.parse(event.data);
           if (data.type === 'connection_established') {
             setIsConnected(true);
+            setIsConnecting(false);
           } else {
             onMessage?.(data);
           }
@@ -53,11 +58,13 @@ export function useWebSocket({ onMessage }: WebSocketHookOptions = {}) {
 
       ws.onerror = (error) => {
         console.error('WebSocket error:', error);
+        setIsConnecting(false);
       };
 
       ws.onclose = () => {
         console.log('WebSocket disconnected');
         setIsConnected(false);
+        setIsConnecting(false);
         socket.current = null;
 
         // Only attempt to reconnect if we haven't exceeded the maximum attempts
@@ -73,6 +80,7 @@ export function useWebSocket({ onMessage }: WebSocketHookOptions = {}) {
           // Set up new reconnection attempt
           console.log(`Attempting reconnect in ${backoffTime}ms (attempt ${reconnectAttempt.current})`);
           reconnectTimeoutRef.current = setTimeout(() => {
+            setIsConnecting(true);
             connect();
           }, backoffTime);
 
@@ -95,6 +103,7 @@ export function useWebSocket({ onMessage }: WebSocketHookOptions = {}) {
     } catch (error) {
       console.error('Error creating WebSocket connection:', error);
       setIsConnected(false);
+      setIsConnecting(false);
     }
   }, [onMessage, toast]);
 
@@ -115,9 +124,10 @@ export function useWebSocket({ onMessage }: WebSocketHookOptions = {}) {
 
       // Reset connection state
       setIsConnected(false);
+      setIsConnecting(false);
       reconnectAttempt.current = 0;
     };
   }, [connect]);
 
-  return { isConnected, socket: socket.current };
+  return { isConnected, isConnecting, socket: socket.current };
 }
