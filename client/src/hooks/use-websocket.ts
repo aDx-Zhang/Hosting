@@ -42,6 +42,9 @@ export function useWebSocket({ onMessage }: WebSocketHookOptions = {}) {
         setIsConnected(true);
         setIsConnecting(false);
         reconnectAttempt.current = 0;
+
+        // Send an initial message to test the connection
+        ws.send(JSON.stringify({ type: 'hello' }));
       };
 
       ws.onmessage = (event) => {
