@@ -50,6 +50,18 @@ function formatUpdateFrequency(seconds: number): string {
   return `${minutes}m`;
 }
 
+// Placeholder -  Replace with your actual ConnectionStatus component
+const ConnectionStatus = ({ isConnected, isConnecting }: { isConnected: boolean; isConnecting: boolean }) => {
+  if (isConnecting) {
+    return <span className="text-yellow-500">Connecting...</span>;
+  }
+  if (isConnected) {
+    return <span className="text-green-500">Connected</span>;
+  }
+  return <span className="text-red-500">Disconnected</span>;
+};
+
+
 export default function Monitor() {
   const [monitors, setMonitors] = useState<Monitor[]>([]);
   const [isLoading, setIsLoading] = useState(true);
@@ -243,14 +255,17 @@ export default function Monitor() {
                               {formatMonitorTitle(monitor.params)}
                             </h3>
                           </div>
-                          <Button
-                            variant="ghost"
-                            size="icon"
-                            onClick={() => stopMonitor(monitor.id)}
-                            className="opacity-0 group-hover:opacity-100 hover:bg-destructive/10 hover:text-destructive transition-opacity"
-                          >
-                            <X className="h-4 w-4" />
-                          </Button>
+                          <div className="flex items-center gap-2">
+                            <ConnectionStatus isConnected={isConnected} isConnecting={isConnecting} />
+                            <Button
+                              variant="ghost"
+                              size="icon"
+                              onClick={() => stopMonitor(monitor.id)}
+                              className="opacity-0 group-hover:opacity-100 hover:bg-destructive/10 hover:text-destructive transition-opacity"
+                            >
+                              <X className="h-4 w-4" />
+                            </Button>
+                          </div>
                         </div>
 
                         <ProductGrid
