@@ -1,9 +1,8 @@
-import { compare, hash } from "bcryptjs";
+import { compare } from "../utils/hash";
+import { hash } from "../utils/hash";
 import { db } from "../db";
 import { users, type User } from "@shared/schema";
 import { eq } from "drizzle-orm";
-
-const SALT_ROUNDS = 10;
 
 export class AuthService {
   async createInitialAdminUser() {
@@ -13,7 +12,7 @@ export class AuthService {
 
       // Create new admin user with correct password hash
       const password = 'admin123';
-      const hashedPassword = await hash(password, SALT_ROUNDS);
+      const hashedPassword = await hash(password);
 
       const [user] = await db.insert(users)
         .values({
