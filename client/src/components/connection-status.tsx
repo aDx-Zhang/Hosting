@@ -9,27 +9,24 @@ interface ConnectionStatusProps {
 export function ConnectionStatus({ isConnected, isConnecting }: ConnectionStatusProps) {
   if (isConnecting) {
     return (
-      <div className="flex items-center gap-2 text-muted-foreground">
+      <div className="flex items-center gap-2">
         <AnimatedEmoji state="connecting" className="text-lg" />
-        <Loader2 className="h-4 w-4 animate-spin" />
-        <span>Connecting to real-time updates...</span>
+        <Loader2 className="h-4 w-4 animate-spin text-muted-foreground" />
       </div>
     );
   }
 
   if (!isConnected) {
     return (
-      <div className="flex items-center gap-2 text-destructive">
+      <div className="flex items-center">
         <AnimatedEmoji state="disconnected" className="text-lg" />
-        <span>Connection lost. Attempting to reconnect...</span>
       </div>
     );
   }
 
   return (
-    <div className="flex items-center gap-2 text-green-600">
+    <div className="flex items-center">
       <AnimatedEmoji state="connected" className="text-lg" />
-      <span>Connected to real-time updates</span>
     </div>
   );
 }
