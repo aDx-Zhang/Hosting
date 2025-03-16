@@ -1,6 +1,6 @@
 import { useAuth } from "@/hooks/use-auth";
 import { useQuery, useMutation } from "@tanstack/react-query";
-import { Loader2, Calendar, CheckCircle2, XCircle, LogOut, Key } from "lucide-react";
+import { Loader2, Calendar, CheckCircle2, XCircle, LogOut } from "lucide-react";
 import { Redirect } from "wouter";
 import {
   Card,
@@ -106,7 +106,7 @@ export default function UserPanel() {
       <div className="absolute inset-0 w-full h-full animate-gradient" />
       <div className="absolute inset-0 bg-grid-white/[0.02] -z-10" />
 
-      <div className="w-full bg-[#2a1f3d] border-b border-purple-700/30">
+      <div className="relative z-10"> {/*This line was added from edited code*/}
         <div className="container mx-auto py-4 px-4">
           <div className="flex items-center justify-between">
             <h1 className="text-3xl font-bold text-white">
