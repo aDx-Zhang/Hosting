@@ -54,11 +54,20 @@ export class AuthService {
     }
   }
 
-  async isAdmin(userId: number): Promise<boolean> {
-    const [user] = await db.select()
-      .from(users)
-      .where(eq(users.id, userId));
+  async getUser(userId: number): Promise<User | null> {
+    try {
+      const [user] = await db.select()
+        .from(users)
+        .where(eq(users.id, userId));
+      return user || null;
+    } catch (error) {
+      console.error('Error getting user:', error);
+      return null;
+    }
+  }
 
+  async isAdmin(userId: number): Promise<boolean> {
+    const user = await this.getUser(userId);
     return user?.role === 'admin';
   }
 }
