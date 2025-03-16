@@ -7,23 +7,13 @@ import Home from "@/pages/home";
 import Monitor from "@/pages/monitor";
 import Login from "@/pages/login";
 import AdminPanel from "@/pages/admin-panel";
-import { useState, useEffect } from "react";
+import { useAuth } from "@/hooks/use-auth";
+import { Loader2 } from "lucide-react";
+import { Redirect } from "wouter";
 
 function Navigation() {
   const [location] = useLocation();
-  const [isAdmin, setIsAdmin] = useState(false);
-
-  // Check if user is admin
-  useEffect(() => {
-    fetch("/api/auth/session")
-      .then(res => res.json())
-      .then(data => {
-        if (data.user?.role === 'admin') {
-          setIsAdmin(true);
-        }
-      })
-      .catch(() => setIsAdmin(false));
-  }, []);
+  const { user } = useAuth();
 
   // Don't show navigation on login page
   if (location === "/login") {
@@ -41,7 +31,7 @@ function Navigation() {
             <Link href="/monitor">
               <a className="text-primary hover:text-primary/80">Monitor</a>
             </Link>
-            {isAdmin && (
+            {user?.role === 'admin' && (
               <Link href="/admin">
                 <a className="text-primary hover:text-primary/80">Admin Panel</a>
               </Link>
@@ -62,33 +52,40 @@ function Navigation() {
   );
 }
 
-function ProtectedRoute({ component: Component }: { component: React.ComponentType }) {
-  const [, setLocation] = useLocation();
-  const [isAuthenticated, setIsAuthenticated] = useState<boolean | null>(null);
+function AdminRoute({ component: Component }: { component: React.ComponentType }) {
+  const { user, isLoading } = useAuth();
 
-  useEffect(() => {
-    // Check session status
-    fetch("/api/auth/session")
-      .then(res => {
-        if (!res.ok) {
-          throw new Error("Not authenticated");
-        }
-        return res.json();
-      })
-      .then(() => setIsAuthenticated(true))
-      .catch(() => {
-        setIsAuthenticated(false);
-        setLocation("/login");
-      });
-  }, [setLocation]);
-
-  // Show nothing while checking authentication
-  if (isAuthenticated === null) {
-    return null;
+  if (isLoading) {
+    return (
+      <div className="flex items-center justify-center min-h-screen">
+        <Loader2 className="h-8 w-8 animate-spin" />
+      </div>
+    );
   }
 
-  // Show component if authenticated
-  return isAuthenticated ? <Component /> : null;
+  if (!user || user.role !== 'admin') {
+    return <Redirect to="/" />;
+  }
+
+  return <Component />;
+}
+
+function ProtectedRoute({ component: Component }: { component: React.ComponentType }) {
+  const { user, isLoading } = useAuth();
+
+  if (isLoading) {
+    return (
+      <div className="flex items-center justify-center min-h-screen">
+        <Loader2 className="h-8 w-8 animate-spin" />
+      </div>
+    );
+  }
+
+  if (!user) {
+    return <Redirect to="/login" />;
+  }
+
+  return <Component />;
 }
 
 function Router() {
@@ -97,7 +94,7 @@ function Router() {
       <Route path="/login" component={Login} />
       <Route path="/" component={() => <ProtectedRoute component={Home} />} />
       <Route path="/monitor" component={() => <ProtectedRoute component={Monitor} />} />
-      <Route path="/admin" component={() => <ProtectedRoute component={AdminPanel} />} />
+      <Route path="/admin" component={() => <AdminRoute component={AdminPanel} />} />
       <Route component={NotFound} />
     </Switch>
   );
