@@ -72,14 +72,19 @@ export default function Login() {
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-[#F8F9FA] p-4">
-      <Card className="w-full max-w-md">
-        <CardHeader>
-          <CardTitle className="text-2xl font-bold text-center">
-            Login to Monitor
+    <div className="min-h-screen flex items-center justify-center bg-background p-4">
+      <Card className="w-full max-w-md bg-card/50 backdrop-blur supports-[backdrop-filter]:bg-background/60 border-border/50">
+        <CardHeader className="space-y-4 pb-6">
+          <div className="flex justify-center">
+            <h1 className="text-3xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-primary/80 to-primary">
+              FlipX
+            </h1>
+          </div>
+          <CardTitle className="text-xl text-center text-foreground/80">
+            Sign in to your account
           </CardTitle>
         </CardHeader>
-        <CardContent>
+        <CardContent className="space-y-6">
           <Form {...form}>
             <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
               <FormField
@@ -116,24 +121,28 @@ export default function Login() {
 
               <Button
                 type="submit"
-                className="w-full"
+                className="w-full bg-primary hover:bg-primary/90"
                 disabled={isLoading}
               >
-                {isLoading ? "Logging in..." : "Login"}
+                {isLoading ? "Signing in..." : "Sign in"}
               </Button>
 
-              <p className="text-sm text-center text-muted-foreground mt-4">
+              <p className="text-sm text-center text-muted-foreground pt-4">
                 Don't have an account?{" "}
                 <Link href="/register">
-                  <a className="text-primary hover:underline">Register</a>
+                  <a className="text-primary hover:text-primary/90 hover:underline transition-colors">
+                    Create an account
+                  </a>
                 </Link>
               </p>
 
-              <p className="text-sm text-center text-muted-foreground mt-4">
-                Default admin credentials:<br />
-                Username: admin<br />
-                Password: admin123
-              </p>
+              <div className="bg-card/50 backdrop-blur supports-[backdrop-filter]:bg-background/60 rounded-lg p-4 mt-6 border border-border/50">
+                <p className="text-sm text-center text-muted-foreground">
+                  Demo credentials:<br />
+                  Username: <span className="text-primary">admin</span><br />
+                  Password: <span className="text-primary">admin123</span>
+                </p>
+              </div>
             </form>
           </Form>
         </CardContent>

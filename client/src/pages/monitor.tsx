@@ -131,47 +131,47 @@ export default function Monitor() {
   };
 
   return (
-    <div className="min-h-screen bg-background pb-8">
+    <div className="min-h-screen bg-background pb-16">
       <main className="container mx-auto px-4 py-8">
-        <div className="max-w-4xl mx-auto">
-          <Tabs defaultValue="active" className="space-y-6">
-            <div className="bg-card rounded-lg shadow-lg p-4">
-              <TabsList className="grid w-full grid-cols-2 gap-4">
+        <div className="max-w-4xl mx-auto space-y-8">
+          <Tabs defaultValue="active">
+            <div className="bg-card/50 backdrop-blur supports-[backdrop-filter]:bg-background/60 rounded-lg border border-border/50 shadow-sm">
+              <TabsList className="w-full p-1 h-auto gap-1">
                 <TabsTrigger
                   value="active"
-                  className="data-[state=active]:bg-primary data-[state=active]:text-primary-foreground rounded-md py-3 transition-all"
+                  className="flex-1 data-[state=active]:bg-primary data-[state=active]:text-primary-foreground py-2.5"
                 >
                   Active Monitors
                 </TabsTrigger>
                 <TabsTrigger
                   value="create"
-                  className="data-[state=active]:bg-primary data-[state=active]:text-primary-foreground rounded-md py-3 transition-all"
+                  className="flex-1 data-[state=active]:bg-primary data-[state=active]:text-primary-foreground py-2.5"
                 >
                   Create Monitor
                 </TabsTrigger>
               </TabsList>
             </div>
 
-            <TabsContent value="active" className="mt-6 space-y-6">
+            <TabsContent value="active" className="space-y-6 mt-8">
               {monitors.length === 0 ? (
-                <div className="text-center py-12 bg-card rounded-lg shadow-lg border-2 border-dashed border-border">
+                <div className="text-center py-16 bg-card/50 backdrop-blur supports-[backdrop-filter]:bg-background/60 rounded-lg border border-dashed border-border/50">
                   <p className="text-muted-foreground">No active monitors. Create one to start tracking items.</p>
                 </div>
               ) : (
                 <div className="space-y-6">
                   {monitors.map((monitor) => (
-                    <div key={monitor.id} className="bg-card rounded-lg shadow-lg border border-border hover:border-primary/20 transition-colors">
+                    <div key={monitor.id} className="group bg-card/50 backdrop-blur supports-[backdrop-filter]:bg-background/60 rounded-lg border border-border/50 shadow-sm hover:border-primary/20 hover:shadow-md transition-all">
                       <div className="p-6">
                         <div className="flex items-center justify-between mb-6">
-                          <div>
+                          <div className="space-y-1">
                             <h3 className="text-lg font-semibold text-foreground">
                               {formatMonitorTitle(monitor.params)}
                             </h3>
-                            <p className="text-sm text-muted-foreground mt-1">
+                            <p className="text-sm text-muted-foreground">
                               {formatUpdateFrequency(monitor.params.updateFrequency)}
                             </p>
                             {(monitor.params.minPrice !== undefined || monitor.params.maxPrice !== undefined) && (
-                              <p className="text-sm text-muted-foreground mt-1">
+                              <p className="text-sm text-muted-foreground">
                                 Price range: {monitor.params.minPrice || 0} - {monitor.params.maxPrice || '∞'} PLN
                               </p>
                             )}
@@ -180,7 +180,7 @@ export default function Monitor() {
                             variant="ghost"
                             size="icon"
                             onClick={() => stopMonitor(monitor.id)}
-                            className="hover:bg-destructive/10 hover:text-destructive"
+                            className="opacity-0 group-hover:opacity-100 hover:bg-destructive/10 hover:text-destructive transition-opacity"
                           >
                             <X className="h-4 w-4" />
                           </Button>
@@ -200,10 +200,10 @@ export default function Monitor() {
               )}
             </TabsContent>
 
-            <TabsContent value="create">
-              <div className="bg-card rounded-lg shadow-lg border border-border">
-                <div className="p-6">
-                  <Alert className="mb-6 bg-primary/5 border-primary/20">
+            <TabsContent value="create" className="mt-8">
+              <div className="bg-card/50 backdrop-blur supports-[backdrop-filter]:bg-background/60 rounded-lg border border-border/50 shadow-sm">
+                <div className="p-6 space-y-6">
+                  <Alert className="bg-primary/5 border-primary/20">
                     <AlertTriangle className="h-4 w-4 text-primary" />
                     <AlertDescription className="text-primary/80">
                       Set your search criteria and update frequency, then start monitoring. You can have multiple monitors running at the same time.
@@ -217,14 +217,12 @@ export default function Monitor() {
                     showFrequencySlider={true}
                   />
 
-                  <div className="mt-6">
-                    <Button
-                      onClick={startNewMonitor}
-                      className="w-full bg-primary hover:bg-primary/90 text-primary-foreground"
-                    >
-                      Start New Monitor
-                    </Button>
-                  </div>
+                  <Button
+                    onClick={startNewMonitor}
+                    className="w-full bg-primary hover:bg-primary/90 text-primary-foreground"
+                  >
+                    Start New Monitor
+                  </Button>
                 </div>
               </div>
             </TabsContent>
