@@ -1,6 +1,6 @@
 import { useAuth } from "@/hooks/use-auth";
 import { useQuery, useMutation } from "@tanstack/react-query";
-import { Loader2, Calendar, CheckCircle2, XCircle, LogOut } from "lucide-react";
+import { Loader2, Calendar, CheckCircle2, XCircle } from "lucide-react";
 import { Redirect } from "wouter";
 import {
   Card,
@@ -79,19 +79,6 @@ export default function UserPanel() {
     }
   });
 
-  const handleLogout = async () => {
-    try {
-      await fetch("/api/auth/logout", { method: "POST" });
-      window.location.href = "/login";
-    } catch (error) {
-      toast({
-        title: "Error",
-        description: "Failed to logout. Please try again.",
-        variant: "destructive",
-      });
-    }
-  };
-
   if (isLoading) {
     return (
       <div className="flex items-center justify-center min-h-screen bg-[#2a1f3d]">
@@ -104,24 +91,6 @@ export default function UserPanel() {
     <div className="min-h-screen bg-[#2a1f3d] relative overflow-hidden">
       <div className="absolute inset-0 w-full h-full animate-gradient" />
       <div className="absolute inset-0 bg-grid-white/[0.02] -z-10" />
-
-      <div className="sticky top-0 z-50">
-        <div className="w-full bg-[#2a1f3d]/95 backdrop-blur-sm border-b border-purple-700/30">
-          <div className="container mx-auto flex items-center justify-between py-4 px-4">
-            <div className="flex items-center gap-2">
-              <span className="text-xl font-bold text-primary">FlipX</span>
-            </div>
-            <Button
-              variant="outline"
-              className="flex items-center gap-2 text-destructive hover:text-destructive hover:bg-destructive/10"
-              onClick={handleLogout}
-            >
-              <LogOut className="h-4 w-4" />
-              Logout
-            </Button>
-          </div>
-        </div>
-      </div>
 
       <div className="container mx-auto py-8 px-4 relative z-10">
         <div className="grid gap-6 max-w-2xl mx-auto">
