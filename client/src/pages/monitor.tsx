@@ -62,6 +62,7 @@ export default function Monitor() {
       try {
         const res = await apiRequest("GET", "/api/monitors");
         const data = await res.json();
+        console.log("Loaded monitors:", data); //Added logging
         setMonitors(data.map((monitor: any) => ({
           id: monitor.id.toString(),
           params: typeof monitor.params === 'string'
@@ -79,6 +80,7 @@ export default function Monitor() {
 
   const startNewMonitor = async () => {
     try {
+      console.log("Starting monitor with params:", searchParams); //Added logging
       const res = await apiRequest("POST", "/api/monitor/start", searchParams);
       const data = await res.json();
 
@@ -95,6 +97,7 @@ export default function Monitor() {
         duration: 3000,
       });
     } catch (error) {
+      console.error("Error starting monitor:", error); //Added logging
       toast({
         title: "Error",
         description: "Failed to start monitoring. Please try again.",
@@ -105,6 +108,7 @@ export default function Monitor() {
 
   const stopMonitor = async (monitorId: string) => {
     try {
+      console.log("Stopping monitor:", monitorId); //Added logging
       await apiRequest("POST", "/api/monitor/stop", { monitorId });
       setMonitors(prev => prev.filter(m => m.id !== monitorId));
 
@@ -114,6 +118,7 @@ export default function Monitor() {
         variant: "default",
       });
     } catch (error) {
+      console.error("Error stopping monitor:", error); //Added logging
       toast({
         title: "Error",
         description: "Failed to stop monitoring. Please try again.",
@@ -123,6 +128,7 @@ export default function Monitor() {
   };
 
   const updateMonitorProducts = (monitorId: string, newProducts: Product[]) => {
+    console.log("Updating products for monitor", monitorId, "with", newProducts); //Added logging
     setMonitors(prev => prev.map(monitor =>
       monitor.id === monitorId
         ? { ...monitor, products: [...newProducts, ...monitor.products] }

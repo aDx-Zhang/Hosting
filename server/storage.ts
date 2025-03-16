@@ -48,15 +48,19 @@ export class DatabaseStorage implements IStorage {
       let filteredProducts = allProducts;
 
       if (params.minPrice !== undefined) {
-        filteredProducts = filteredProducts.filter(product => 
-          parseFloat(product.price) >= params.minPrice!
-        );
+        filteredProducts = filteredProducts.filter(product => {
+          const price = parseFloat(product.price);
+          log(`Checking price ${price} >= ${params.minPrice}`);
+          return price >= params.minPrice!;
+        });
       }
 
       if (params.maxPrice !== undefined) {
-        filteredProducts = filteredProducts.filter(product => 
-          parseFloat(product.price) <= params.maxPrice!
-        );
+        filteredProducts = filteredProducts.filter(product => {
+          const price = parseFloat(product.price);
+          log(`Checking price ${price} <= ${params.maxPrice}`);
+          return price <= params.maxPrice!;
+        });
       }
 
       if (params.marketplace && params.marketplace !== 'all') {
