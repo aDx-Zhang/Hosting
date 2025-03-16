@@ -105,21 +105,23 @@ export default function UserPanel() {
       <div className="absolute inset-0 w-full h-full animate-gradient" />
       <div className="absolute inset-0 bg-grid-white/[0.02] -z-10" />
 
-      <header className="bg-transparent backdrop-blur-sm border-b border-purple-700/30">
-        <div className="container mx-auto flex items-center justify-between py-4 px-4">
-          <div className="flex items-center gap-2">
-            <span className="text-xl font-bold text-primary">FlipX</span>
+      <div className="sticky top-0 z-50">
+        <div className="w-full bg-[#2a1f3d]/95 backdrop-blur-sm border-b border-purple-700/30">
+          <div className="container mx-auto flex items-center justify-between py-4 px-4">
+            <div className="flex items-center gap-2">
+              <span className="text-xl font-bold text-primary">FlipX</span>
+            </div>
+            <Button
+              variant="outline"
+              className="flex items-center gap-2 text-destructive hover:text-destructive hover:bg-destructive/10"
+              onClick={handleLogout}
+            >
+              <LogOut className="h-4 w-4" />
+              Logout
+            </Button>
           </div>
-          <Button
-            variant="outline"
-            className="flex items-center gap-2 text-destructive hover:text-destructive hover:bg-destructive/10"
-            onClick={handleLogout}
-          >
-            <LogOut className="h-4 w-4" />
-            Logout
-          </Button>
         </div>
-      </header>
+      </div>
 
       <div className="container mx-auto py-8 px-4 relative z-10">
         <div className="grid gap-6 max-w-2xl mx-auto">
