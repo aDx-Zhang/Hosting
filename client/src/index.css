@@ -17,6 +17,19 @@
     animation: gradient 8s linear infinite;
   }
 
+  .cursor-glow::before {
+    content: '';
+    position: fixed;
+    pointer-events: none;
+    width: 400px;
+    height: 400px;
+    background: radial-gradient(circle at center, theme('colors.primary.DEFAULT/0.15'), transparent 60%);
+    border-radius: 50%;
+    transform: translate(-50%, -50%);
+    z-index: 0;
+    transition: transform 0.2s ease-out;
+  }
+
   @keyframes gradient {
     0% {
       background-position: 0% 50%;

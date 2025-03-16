@@ -21,6 +21,7 @@ export default function Register() {
   const [, setLocation] = useLocation();
   const { toast } = useToast();
   const [isLoading, setIsLoading] = useState(false);
+  const [mousePosition, setMousePosition] = useState({ x: 0, y: 0 });
 
   const form = useForm({
     resolver: zodResolver(registerSchema),
@@ -30,6 +31,10 @@ export default function Register() {
       apiKey: "",
     },
   });
+
+  const handleMouseMove = (e: React.MouseEvent) => {
+    setMousePosition({ x: e.clientX, y: e.clientY });
+  };
 
   const onSubmit = async (values: { username: string; password: string; apiKey: string }) => {
     try {
@@ -70,14 +75,34 @@ export default function Register() {
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-[#F8F9FA] p-4">
-      <Card className="w-full max-w-md">
-        <CardHeader>
-          <CardTitle className="text-2xl font-bold text-center">
-            Create Account
+    <div 
+      className="min-h-screen flex items-center justify-center bg-background p-4 relative overflow-hidden cursor-glow"
+      onMouseMove={handleMouseMove}
+      style={{
+        '--cursor-x': `${mousePosition.x}px`,
+        '--cursor-y': `${mousePosition.y}px`,
+      } as React.CSSProperties}
+    >
+      {/* Animated background */}
+      <div className="absolute inset-0 w-full h-full bg-background" aria-hidden="true">
+        <div className="absolute inset-0 w-full h-full opacity-50 animate-gradient bg-[length:200%_200%] bg-gradient-to-r from-primary/20 via-primary/5 to-background"></div>
+        <div className="absolute inset-0 w-full h-full opacity-30">
+          <div className="absolute inset-0 rotate-45 blur-3xl bg-gradient-to-r from-primary/30 via-primary/10 to-transparent transform-gpu animate-pulse"></div>
+        </div>
+      </div>
+
+      <Card className="w-full max-w-md bg-card/30 backdrop-blur-xl border-border/50 relative z-10">
+        <CardHeader className="space-y-4 pb-6">
+          <div className="flex justify-center">
+            <h1 className="text-3xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-primary/80 to-primary">
+              FlipX
+            </h1>
+          </div>
+          <CardTitle className="text-xl text-center text-foreground/80">
+            Create an account
           </CardTitle>
         </CardHeader>
-        <CardContent>
+        <CardContent className="space-y-6">
           <Form {...form}>
             <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
               <FormField
@@ -87,7 +112,11 @@ export default function Register() {
                   <FormItem>
                     <FormLabel>Username</FormLabel>
                     <FormControl>
-                      <Input placeholder="Enter your username" {...field} />
+                      <Input 
+                        placeholder="Enter your username" 
+                        className="bg-background/50 border-border/50"
+                        {...field} 
+                      />
                     </FormControl>
                     <FormMessage />
                   </FormItem>
@@ -104,6 +133,7 @@ export default function Register() {
                       <Input
                         type="password"
                         placeholder="Enter your password"
+                        className="bg-background/50 border-border/50"
                         {...field}
                       />
                     </FormControl>
@@ -121,6 +151,7 @@ export default function Register() {
                     <FormControl>
                       <Input
                         placeholder="Enter your API key"
+                        className="bg-background/50 border-border/50"
                         {...field}
                       />
                     </FormControl>
@@ -131,22 +162,23 @@ export default function Register() {
 
               <Button
                 type="submit"
-                className="w-full"
+                className="w-full bg-primary hover:bg-primary/90"
                 disabled={isLoading}
               >
                 {isLoading ? "Creating account..." : "Create Account"}
               </Button>
+
+              <p className="text-sm text-center text-muted-foreground pt-4">
+                Already have an account?{" "}
+                <Link href="/login">
+                  <a className="text-primary hover:text-primary/90 hover:underline transition-colors">
+                    Sign in
+                  </a>
+                </Link>
+              </p>
             </form>
           </Form>
         </CardContent>
-        <CardFooter className="justify-center">
-          <p className="text-sm text-muted-foreground">
-            Already have an account?{" "}
-            <Link href="/login">
-              <a className="text-primary hover:underline">Login</a>
-            </Link>
-          </p>
-        </CardFooter>
       </Card>
     </div>
   );

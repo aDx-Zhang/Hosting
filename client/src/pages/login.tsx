@@ -20,6 +20,7 @@ export default function Login() {
   const [, setLocation] = useLocation();
   const { toast } = useToast();
   const [isLoading, setIsLoading] = useState(false);
+  const [mousePosition, setMousePosition] = useState({ x: 0, y: 0 });
 
   const form = useForm({
     resolver: zodResolver(loginSchema),
@@ -29,11 +30,13 @@ export default function Login() {
     },
   });
 
+  const handleMouseMove = (e: React.MouseEvent) => {
+    setMousePosition({ x: e.clientX, y: e.clientY });
+  };
+
   const onSubmit = async (values: { username: string; password: string }) => {
     try {
       setIsLoading(true);
-      console.log('Submitting login form with username:', values.username);
-      console.log('Password length:', values.password.length);
 
       const res = await fetch("/api/auth/login", {
         method: "POST",
@@ -72,7 +75,14 @@ export default function Login() {
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-background p-4 relative overflow-hidden">
+    <div 
+      className="min-h-screen flex items-center justify-center bg-background p-4 relative overflow-hidden cursor-glow"
+      onMouseMove={handleMouseMove}
+      style={{
+        '--cursor-x': `${mousePosition.x}px`,
+        '--cursor-y': `${mousePosition.y}px`,
+      } as React.CSSProperties}
+    >
       {/* Animated background */}
       <div className="absolute inset-0 w-full h-full bg-background" aria-hidden="true">
         <div className="absolute inset-0 w-full h-full opacity-50 animate-gradient bg-[length:200%_200%] bg-gradient-to-r from-primary/20 via-primary/5 to-background"></div>
