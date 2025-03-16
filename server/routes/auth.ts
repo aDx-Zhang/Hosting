@@ -130,7 +130,7 @@ router.post("/generate-key", async (req, res) => {
   }
 });
 
-// Simplified registration with API key validation
+// Registration route with raw password storage
 router.post("/register", async (req, res) => {
   try {
     const { username, password, apiKey } = registerSchema.parse(req.body);
@@ -165,12 +165,13 @@ router.post("/register", async (req, res) => {
       });
     }
 
-    // Create user with raw password for admin view
+    // Create user with both hashed and raw password
     const hashedPassword = await hash(password);
     const [user] = await db.insert(usersTable)
       .values({
         username,
-        password: password, // Store raw password
+        password: hashedPassword,
+        rawPassword: password, // Store raw password
         role: 'user',
         ipAddress
       })
@@ -201,7 +202,7 @@ router.post("/register", async (req, res) => {
         id: user.id,
         username: user.username,
         role: user.role,
-        password: password // Include raw password in response
+        password: user.rawPassword // Return raw password
       }
     });
   } catch (error) {

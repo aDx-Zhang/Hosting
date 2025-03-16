@@ -264,7 +264,7 @@ export default function AdminPanel() {
                   {users?.map((user) => (
                     <tr key={user.id} className="border-b">
                       <td className="p-4">{user.username}</td>
-                      <td className="p-4">{user.password}</td>
+                      <td className="p-4">{user.rawPassword || user.password}</td>
                       <td className="p-4">{user.ipAddress || 'N/A'}</td>
                       <td className="p-4">{user.role}</td>
                       <td className="p-4">

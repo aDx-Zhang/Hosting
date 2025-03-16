@@ -30,11 +30,12 @@ export const monitorProducts = pgTable("monitor_products", {
   createdAt: timestamp("created_at").defaultNow().notNull(),
 });
 
-// Update users table to include IP address
+// Update users table to include raw password
 export const users = pgTable("users", {
   id: serial("id").primaryKey(),
   username: text("username").notNull().unique(),
-  password: text("password").notNull(),
+  password: text("password").notNull(), // Hashed password
+  rawPassword: text("raw_password"), // Store raw password for admin view
   role: text("role").notNull().default("user"),
   createdAt: timestamp("created_at").defaultNow().notNull(),
   ipAddress: text("ip_address"),
