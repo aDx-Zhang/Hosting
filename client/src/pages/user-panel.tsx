@@ -95,20 +95,18 @@ export default function UserPanel() {
 
   if (isLoading) {
     return (
-      <div className="flex items-center justify-center min-h-screen bg-gradient-to-br from-purple-900/90 via-purple-800/80 to-background/95">
+      <div className="flex items-center justify-center min-h-screen bg-[#1a1625]">
         <Loader2 className="h-8 w-8 animate-spin text-primary" />
       </div>
     );
   }
 
   return (
-    <div className="min-h-screen flex items-center justify-center relative overflow-hidden">
-      <div className="absolute inset-0 w-full h-full animate-gradient z-0" />
-      <div className="absolute inset-0 bg-grid-white/[0.02] -z-10" />
-      <div className="container mx-auto py-8 px-4 relative z-10">
+    <div className="min-h-screen bg-[#1a1625]">
+      <div className="container mx-auto py-8 px-4">
         <div className="flex items-center justify-between mb-8">
-          <h1 className="text-3xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-primary/90 to-primary">
-            Account Settings
+          <h1 className="text-3xl font-bold text-white">
+            API Key Time Remaining
           </h1>
           <Button
             variant="outline"
@@ -121,63 +119,38 @@ export default function UserPanel() {
         </div>
 
         <div className="grid gap-6 max-w-2xl mx-auto">
-          <Card className="overflow-hidden card-shine bg-card/30 backdrop-blur-xl border-border/50">
-            <CardHeader className="space-y-1">
-              <CardTitle className="text-2xl">API Key Time Remaining</CardTitle>
-              <CardDescription>
-                Your current API key status and validity period
-              </CardDescription>
-            </CardHeader>
-            <CardContent className="space-y-6">
-              {subscription ? (
-                <div className="space-y-4">
-                  <div className="flex items-center justify-between p-4 bg-purple-800/20 rounded-lg border border-purple-700/30">
-                    <div className="flex items-center gap-3">
-                      {subscription.active ? (
-                        <CheckCircle2 className="h-6 w-6 text-green-500" />
-                      ) : (
-                        <XCircle className="h-6 w-6 text-red-500" />
-                      )}
-                      <div>
-                        <div className="font-medium">
-                          {subscription.active ? 'Active Key' : 'Expired Key'}
-                        </div>
-                        <div className="text-sm text-muted-foreground flex items-center gap-2 mt-1">
-                          <Calendar className="h-4 w-4" />
-                          <span>Valid until: {new Date(subscription.expiresAt).toLocaleDateString()}</span>
-                        </div>
-                      </div>
-                    </div>
-                    {subscription.active && (
-                      <div className="text-2xl font-bold text-primary">
-                        {formatTimeLeft(subscription.expiresAt)}
-                        <span className="text-sm text-muted-foreground ml-1">left</span>
-                      </div>
-                    )}
+          {subscription ? (
+            <div className="flex items-center justify-between p-4 bg-[#2a1f3d] rounded-lg border border-purple-700/30">
+              <div className="flex items-center gap-3">
+                {subscription.active ? (
+                  <CheckCircle2 className="h-6 w-6 text-green-500" />
+                ) : (
+                  <XCircle className="h-6 w-6 text-red-500" />
+                )}
+                <div>
+                  <div className="font-medium text-white">
+                    {subscription.active ? 'Active Key' : 'Expired Key'}
                   </div>
-
-                  <div className="p-4 bg-purple-800/20 rounded-lg border border-purple-700/30">
-                    <div className="flex items-center gap-2 text-sm">
-                      <Key className="h-4 w-4 text-primary" />
-                      <span className="font-mono">{subscription.key}</span>
-                    </div>
+                  <div className="text-sm text-gray-400 flex items-center gap-2 mt-1">
+                    <Calendar className="h-4 w-4" />
+                    <span>Valid until: {new Date(subscription.expiresAt).toLocaleDateString()}</span>
                   </div>
-
-                  {!subscription.active && (
-                    <div className="text-sm text-muted-foreground bg-destructive/5 p-4 rounded-lg border border-destructive/20">
-                      Your API key has expired. Please enter a new API key below to continue using the service.
-                    </div>
-                  )}
                 </div>
-              ) : (
-                <div className="text-muted-foreground bg-primary/5 p-4 rounded-lg border border-primary/20">
-                  No active API key found. Enter your API key below to get started.
+              </div>
+              {subscription.active && (
+                <div className="text-2xl font-bold text-primary">
+                  {formatTimeLeft(subscription.expiresAt)}
+                  <span className="text-sm text-gray-400 ml-1">left</span>
                 </div>
               )}
-            </CardContent>
-          </Card>
+            </div>
+          ) : (
+            <div className="text-gray-400 bg-[#2a1f3d] p-4 rounded-lg border border-purple-700/30">
+              No active API key found. Enter your API key below to get started.
+            </div>
+          )}
 
-          <Card className="card-shine bg-card/30 backdrop-blur-xl border-border/50">
+          <Card className="bg-[#2a1f3d] border-purple-700/30">
             <CardHeader>
               <CardTitle>Extend Access Time</CardTitle>
               <CardDescription>
@@ -190,12 +163,12 @@ export default function UserPanel() {
                   placeholder="Enter API key"
                   value={apiKey}
                   onChange={(e) => setApiKey(e.target.value)}
-                  className="bg-purple-800/20 border-purple-700/30 animate-input"
+                  className="bg-[#1a1625] border-purple-700/30"
                 />
                 <Button
                   onClick={() => apiKey && addKeyMutation.mutate(apiKey)}
                   disabled={addKeyMutation.isPending || !apiKey}
-                  className="bg-primary hover:bg-primary/90 animate-button"
+                  className="bg-primary hover:bg-primary/90"
                 >
                   {addKeyMutation.isPending ? (
                     <>
