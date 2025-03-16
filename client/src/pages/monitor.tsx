@@ -11,6 +11,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useAuth } from "@/hooks/use-auth";
 import { LoadingIndicator } from "@/components/ui/loading-indicator";
 import { useWebSocket } from "@/hooks/use-websocket";
+import { ConnectionStatus } from "@/components/connection-status";
 
 interface Monitor {
   id: string;
@@ -49,17 +50,6 @@ function formatUpdateFrequency(seconds: number): string {
   const minutes = Math.floor(seconds / 60);
   return `${minutes}m`;
 }
-
-// Placeholder -  Replace with your actual ConnectionStatus component
-const ConnectionStatus = ({ isConnected, isConnecting }: { isConnected: boolean; isConnecting: boolean }) => {
-  if (isConnecting) {
-    return <span className="text-yellow-500">Connecting...</span>;
-  }
-  if (isConnected) {
-    return <span className="text-green-500">Connected</span>;
-  }
-  return <span className="text-red-500">Disconnected</span>;
-};
 
 
 export default function Monitor() {
