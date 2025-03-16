@@ -33,7 +33,6 @@ export class WebScraper {
       await page.goto(searchUrl, { waitUntil: 'networkidle0', timeout: 30000 });
       log('Page loaded, waiting for content...');
 
-      // Wait for the listings container
       await page.waitForSelector('[data-testid="listing-grid"]', { timeout: 10000 });
       log('Listings container found, extracting data...');
 
@@ -51,7 +50,6 @@ export class WebScraper {
           const link = linkEl?.getAttribute('href') || '';
           const description = item.textContent?.trim() || '';
 
-          // Extract price number
           const priceMatch = priceText.match(/\d+([.,]\d+)?/);
           const numericPrice = priceMatch ? parseFloat(priceMatch[0].replace(',', '.')) : 0;
 
@@ -95,7 +93,6 @@ export class WebScraper {
       await page.goto(searchUrl, { waitUntil: 'networkidle0', timeout: 30000 });
       log('Page loaded, waiting for content...');
 
-      // Wait for listings to load
       await page.waitForSelector('[data-box-name="items-v3"]', { timeout: 10000 });
       log('Listings container found, extracting data...');
 
@@ -112,7 +109,6 @@ export class WebScraper {
           const image = imageEl?.getAttribute('src') || '';
           const link = linkEl?.getAttribute('href') || '';
 
-          // Extract price number
           const priceMatch = priceText.match(/\d+([.,]\d+)?/);
           const numericPrice = priceMatch ? parseFloat(priceMatch[0].replace(',', '.')) : 0;
 

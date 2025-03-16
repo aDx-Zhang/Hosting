@@ -47,13 +47,13 @@ export class DatabaseStorage implements IStorage {
 
       if (params.minPrice !== undefined) {
         filteredProducts = filteredProducts.filter(product => 
-          product.price >= params.minPrice!
+          parseFloat(product.price.toString()) >= params.minPrice!
         );
       }
 
       if (params.maxPrice !== undefined) {
         filteredProducts = filteredProducts.filter(product => 
-          product.price <= params.maxPrice!
+          parseFloat(product.price.toString()) <= params.maxPrice!
         );
       }
 
@@ -154,6 +154,7 @@ export class DatabaseStorage implements IStorage {
       monitorId: monitorId.toString()
     });
   }
+
   async getUserSubscriptionInfo(userId: number): Promise<{ expiresAt: Date; active: boolean } | null> {
     const [activeKey] = await db.select()
       .from(apiKeys)
