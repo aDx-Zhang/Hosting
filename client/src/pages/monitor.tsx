@@ -11,6 +11,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useAuth } from "@/hooks/use-auth";
 import { LoadingIndicator } from "@/components/ui/loading-indicator";
 import { useWebSocket } from "@/hooks/use-websocket";
+import { ConnectionStatus } from "@/components/connection-status";
 
 interface Monitor {
   id: string;
@@ -49,13 +50,6 @@ function formatUpdateFrequency(seconds: number): string {
   const minutes = Math.floor(seconds / 60);
   return `${minutes}m`;
 }
-
-// Placeholder for ConnectionStatus component - needs actual implementation
-const ConnectionStatus = ({ isConnected, isConnecting }: { isConnected: boolean; isConnecting: boolean }) => (
-  <span className={`px-2 py-0.5 rounded-full ${isConnected ? 'bg-green-500 text-white' : isConnecting ? 'bg-yellow-500 text-white' : 'bg-red-500 text-white'}`}>
-    {isConnected ? 'Connected' : isConnecting ? 'Connecting...' : 'Disconnected'}
-  </span>
-);
 
 
 export default function Monitor() {
@@ -235,10 +229,8 @@ export default function Monitor() {
                       <div className="p-6">
                         <div className="flex items-center justify-between">
                           <div className="flex-1 min-w-0">
-                            <div className="flex items-center gap-3">
-                              <h3 className="text-lg font-semibold text-primary truncate">
-                                {formatMonitorTitle(monitor.params)}
-                              </h3>
+                            <div className="flex items-center gap-3 mb-2">
+                              <ConnectionStatus isConnected={isConnected} isConnecting={isConnecting} />
                               <div className="flex items-center gap-2 text-sm text-gray-400">
                                 {formatPriceRange(monitor.params) && (
                                   <span className="px-2 py-0.5 rounded-full bg-primary/10 text-primary">
@@ -250,18 +242,18 @@ export default function Monitor() {
                                 </span>
                               </div>
                             </div>
+                            <h3 className="text-lg font-semibold text-primary truncate">
+                              {formatMonitorTitle(monitor.params)}
+                            </h3>
                           </div>
-                          <div className="flex items-center gap-2">
-                            <ConnectionStatus isConnected={isConnected} isConnecting={isConnecting} />
-                            <Button
-                              variant="ghost"
-                              size="icon"
-                              onClick={() => stopMonitor(monitor.id)}
-                              className="opacity-0 group-hover:opacity-100 hover:bg-destructive/10 hover:text-destructive transition-opacity"
-                            >
-                              <X className="h-4 w-4" />
-                            </Button>
-                          </div>
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            onClick={() => stopMonitor(monitor.id)}
+                            className="opacity-0 group-hover:opacity-100 hover:bg-destructive/10 hover:text-destructive transition-opacity"
+                          >
+                            <X className="h-4 w-4" />
+                          </Button>
                         </div>
 
                         <ProductGrid
