@@ -64,7 +64,7 @@ export default function Monitor() {
         const data = await res.json();
         setMonitors(data.map((monitor: any) => ({
           id: monitor.id.toString(),
-          params: typeof monitor.params === 'string' 
+          params: typeof monitor.params === 'string'
             ? JSON.parse(monitor.params)
             : monitor.params,
           products: []
@@ -131,27 +131,19 @@ export default function Monitor() {
   };
 
   return (
-    <div className="min-h-screen bg-[#F8F9FA]">
-      <header className="bg-white border-b">
-        <div className="container mx-auto px-4 py-6">
-          <h1 className="text-2xl font-bold text-[#202124]">
-            Monitor Items
-          </h1>
-        </div>
-      </header>
-
+    <div className="min-h-screen bg-background pb-8">
       <main className="container mx-auto px-4 py-8">
         <div className="max-w-4xl mx-auto">
           <Tabs defaultValue="active" className="space-y-6">
-            <div className="bg-white rounded-lg shadow p-4">
-              <TabsList className="grid w-full grid-cols-2 gap-4 p-2 bg-muted rounded-lg">
-                <TabsTrigger 
-                  value="active" 
+            <div className="bg-card rounded-lg shadow-lg p-4">
+              <TabsList className="grid w-full grid-cols-2 gap-4">
+                <TabsTrigger
+                  value="active"
                   className="data-[state=active]:bg-primary data-[state=active]:text-primary-foreground rounded-md py-3 transition-all"
                 >
                   Active Monitors
                 </TabsTrigger>
-                <TabsTrigger 
+                <TabsTrigger
                   value="create"
                   className="data-[state=active]:bg-primary data-[state=active]:text-primary-foreground rounded-md py-3 transition-all"
                 >
@@ -162,17 +154,17 @@ export default function Monitor() {
 
             <TabsContent value="active" className="mt-6 space-y-6">
               {monitors.length === 0 ? (
-                <div className="text-center py-12 bg-white rounded-lg shadow border-2 border-dashed border-muted">
+                <div className="text-center py-12 bg-card rounded-lg shadow-lg border-2 border-dashed border-border">
                   <p className="text-muted-foreground">No active monitors. Create one to start tracking items.</p>
                 </div>
               ) : (
                 <div className="space-y-6">
                   {monitors.map((monitor) => (
-                    <div key={monitor.id} className="bg-white rounded-lg shadow-md border border-border/50 hover:border-border transition-colors">
+                    <div key={monitor.id} className="bg-card rounded-lg shadow-lg border border-border hover:border-primary/20 transition-colors">
                       <div className="p-6">
                         <div className="flex items-center justify-between mb-6">
                           <div>
-                            <h3 className="text-lg font-semibold">
+                            <h3 className="text-lg font-semibold text-foreground">
                               {formatMonitorTitle(monitor.params)}
                             </h3>
                             <p className="text-sm text-muted-foreground mt-1">
@@ -209,7 +201,7 @@ export default function Monitor() {
             </TabsContent>
 
             <TabsContent value="create">
-              <div className="bg-white rounded-lg shadow-md border border-border/50">
+              <div className="bg-card rounded-lg shadow-lg border border-border">
                 <div className="p-6">
                   <Alert className="mb-6 bg-primary/5 border-primary/20">
                     <AlertTriangle className="h-4 w-4 text-primary" />
