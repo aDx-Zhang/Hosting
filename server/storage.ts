@@ -144,6 +144,7 @@ export class DatabaseStorage implements IStorage {
   }
 
   async addProductToMonitor(monitorId: number, product: Product): Promise<void> {
+    // First check if this product is already in the database
     const [existingProduct] = await db.select()
       .from(products)
       .where(
@@ -167,19 +168,32 @@ export class DatabaseStorage implements IStorage {
       productId = newProduct.id;
     }
 
-    const [monitorProduct] = await db.insert(monitorProducts)
-      .values({
-        monitorId,
-        productId,
-        createdAt: new Date()
-      })
-      .returning();
+    // Check if this product is already linked to this monitor
+    const [existingMonitorProduct] = await db.select()
+      .from(monitorProducts)
+      .where(
+        and(
+          eq(monitorProducts.monitorId, monitorId),
+          eq(monitorProducts.productId, productId)
+        )
+      );
 
-    broadcastUpdate({
-      type: 'new_monitored_products',
-      products: [product],
-      monitorId: monitorId.toString()
-    });
+    // Only add to monitor and broadcast if it's a new product for this monitor
+    if (!existingMonitorProduct) {
+      await db.insert(monitorProducts)
+        .values({
+          monitorId,
+          productId,
+          createdAt: new Date()
+        })
+        .returning();
+
+      broadcastUpdate({
+        type: 'new_monitored_products',
+        products: [product],
+        monitorId: monitorId.toString()
+      });
+    }
   }
 
   async getUserSubscriptionInfo(userId: number): Promise<{ expiresAt: Date; active: boolean } | null> {

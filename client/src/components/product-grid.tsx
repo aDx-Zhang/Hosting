@@ -1,4 +1,4 @@
-import { useState, useCallback } from 'react';
+import { useState, useCallback, useRef } from 'react';
 import type { Product } from "@shared/schema";
 import {
   Card,
@@ -29,6 +29,21 @@ export function ProductGrid({
 }: ProductGridProps) {
   const [products, setProducts] = useState(initialProducts);
   const { toast } = useToast();
+  const seenProducts = useRef(new Set<string>());
+
+  // Initialize seen products from initial products
+  initialProducts.forEach(product => {
+    seenProducts.current.add(`${product.originalUrl}-${product.marketplace}`);
+  });
+
+  const isProductUnique = (product: Product) => {
+    const key = `${product.originalUrl}-${product.marketplace}`;
+    if (seenProducts.current.has(key)) {
+      return false;
+    }
+    seenProducts.current.add(key);
+    return true;
+  };
 
   const handleRealTimeUpdate = useCallback((data: unknown) => {
     if (typeof data === 'object' && data !== null && 'type' in data) {
@@ -36,21 +51,27 @@ export function ProductGrid({
         case 'new_monitored_products': {
           const update = data as { type: string; products: Product[]; monitorId: string };
           if (monitorId && update.monitorId === monitorId) {
-            onNewProducts?.(update.products);
-            toast({
-              title: 'New Products Found!',
-              description: `Found ${update.products.length} new items matching your criteria.`,
-            });
+            // Filter out duplicates
+            const uniqueProducts = update.products.filter(isProductUnique);
+            if (uniqueProducts.length > 0) {
+              onNewProducts?.(uniqueProducts);
+              toast({
+                title: 'New Products Found!',
+                description: `Found ${uniqueProducts.length} new items matching your criteria.`,
+              });
+            }
           }
           break;
         }
         case 'new_product': {
           const update = data as { type: string; product: Product };
-          setProducts(prev => [update.product, ...prev]);
-          toast({
-            title: 'New Product',
-            description: `${update.product.title} was just listed!`,
-          });
+          if (isProductUnique(update.product)) {
+            setProducts(prev => [update.product, ...prev]);
+            toast({
+              title: 'New Product',
+              description: `${update.product.title} was just listed!`,
+            });
+          }
           break;
         }
       }
@@ -105,7 +126,7 @@ export function ProductGrid({
     return (
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
         {displayProducts.map((product) => (
-          <Card key={product.id} className="overflow-hidden">
+          <Card key={`${product.originalUrl}-${product.marketplace}`} className="overflow-hidden hover:border-primary/20 transition-colors">
             <div className="h-48 relative">
               <img
                 src={product.image}
@@ -119,7 +140,7 @@ export function ProductGrid({
             <CardHeader className="p-4">
               <h3 className="font-semibold text-lg line-clamp-1">{product.title}</h3>
               <p className="text-2xl font-bold text-primary">
-                {product.price.toLocaleString('pl-PL', {
+                {Number(product.price).toLocaleString('pl-PL', {
                   style: 'currency',
                   currency: 'PLN',
                 })}
