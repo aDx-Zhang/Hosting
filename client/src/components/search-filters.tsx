@@ -42,17 +42,21 @@ export function SearchFilters({
     <Form {...form}>
       <form
         onSubmit={form.handleSubmit(onSearch)}
-        className="space-y-4 p-4 bg-white rounded-lg shadow-sm"
         onChange={() => form.handleSubmit(onSearch)()}
+        className="space-y-4"
       >
         <FormField
           control={form.control}
           name="query"
           render={({ field }) => (
             <FormItem>
-              <FormLabel>Search</FormLabel>
+              <FormLabel className="text-foreground/90">Search</FormLabel>
               <FormControl>
-                <Input placeholder="What are you looking for?" {...field} />
+                <Input 
+                  placeholder="What are you looking for?" 
+                  {...field}
+                  className="bg-background/50 border-border/50 focus-visible:ring-primary/30"
+                />
               </FormControl>
             </FormItem>
           )}
@@ -63,17 +67,17 @@ export function SearchFilters({
           name="marketplace"
           render={({ field }) => (
             <FormItem>
-              <FormLabel>Marketplace</FormLabel>
+              <FormLabel className="text-foreground/90">Marketplace</FormLabel>
               <Select
                 onValueChange={field.onChange}
                 defaultValue={field.value}
               >
                 <FormControl>
-                  <SelectTrigger>
+                  <SelectTrigger className="bg-background/50 border-border/50">
                     <SelectValue placeholder="Select marketplace" />
                   </SelectTrigger>
                 </FormControl>
-                <SelectContent>
+                <SelectContent className="bg-card border-border/50">
                   <SelectItem value="all">All Marketplaces</SelectItem>
                   <SelectItem value="olx">OLX</SelectItem>
                   <SelectItem value="vinted">Vinted</SelectItem>
@@ -90,11 +94,12 @@ export function SearchFilters({
             name="minPrice"
             render={({ field }) => (
               <FormItem>
-                <FormLabel>Min Price</FormLabel>
+                <FormLabel className="text-foreground/90">Min Price</FormLabel>
                 <FormControl>
                   <Input
                     type="number"
                     placeholder="Min"
+                    className="bg-background/50 border-border/50 focus-visible:ring-primary/30"
                     {...field}
                     onChange={(e) => field.onChange(e.target.value ? Number(e.target.value) : undefined)}
                   />
@@ -108,11 +113,12 @@ export function SearchFilters({
             name="maxPrice"
             render={({ field }) => (
               <FormItem>
-                <FormLabel>Max Price</FormLabel>
+                <FormLabel className="text-foreground/90">Max Price</FormLabel>
                 <FormControl>
                   <Input
                     type="number"
                     placeholder="Max"
+                    className="bg-background/50 border-border/50 focus-visible:ring-primary/30"
                     {...field}
                     onChange={(e) => field.onChange(e.target.value ? Number(e.target.value) : undefined)}
                   />
@@ -128,7 +134,7 @@ export function SearchFilters({
             name="updateFrequency"
             render={({ field }) => (
               <FormItem>
-                <FormLabel>Update Frequency</FormLabel>
+                <FormLabel className="text-foreground/90">Update Frequency</FormLabel>
                 <FormControl>
                   <Slider
                     min={10}
@@ -136,10 +142,10 @@ export function SearchFilters({
                     step={10}
                     value={[field.value]}
                     onValueChange={(value) => field.onChange(value[0])}
-                    className="w-full"
+                    className="[&_[role=slider]]:bg-primary [&_[role=slider]]:border-primary/50"
                   />
                 </FormControl>
-                <FormDescription>
+                <FormDescription className="text-foreground/70">
                   {field.value} seconds between updates
                 </FormDescription>
               </FormItem>
@@ -148,7 +154,10 @@ export function SearchFilters({
         )}
 
         {!hideSearchButton && (
-          <Button type="submit" className="w-full">
+          <Button 
+            type="submit" 
+            className="w-full bg-primary hover:bg-primary/90 text-primary-foreground"
+          >
             Search
           </Button>
         )}
