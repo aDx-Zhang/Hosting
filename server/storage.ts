@@ -3,7 +3,7 @@ import { products, monitors, monitorProducts, apiKeys } from "@shared/schema";
 import { broadcastUpdate } from "./routes";
 import { log } from "./vite";
 import { db } from "./db";
-import { eq, and, desc, gte } from "drizzle-orm";
+import { eq, and, desc, gte, gt } from "drizzle-orm";
 import { marketplaceService } from "./services/marketplaces";
 
 export interface IStorage {
@@ -70,9 +70,13 @@ export class DatabaseStorage implements IStorage {
       }
 
       // Store filtered products in database
+      const now = new Date();
       for (const product of filteredProducts) {
         try {
-          await this.createProduct(product);
+          await this.createProduct({
+            ...product,
+            foundAt: now
+          });
         } catch (error) {
           log(`Error storing product: ${error}`);
         }
@@ -97,7 +101,7 @@ export class DatabaseStorage implements IStorage {
         ...product,
         // Convert string price to numeric for database storage
         price: typeof product.price === 'string' ? parseFloat(product.price) : product.price,
-        foundAt: new Date()
+        foundAt: product.foundAt || new Date()
       })
       .returning();
     return newProduct;
@@ -108,7 +112,8 @@ export class DatabaseStorage implements IStorage {
       params: params,
       active: 1,
       userId,
-      createdAt: new Date()
+      createdAt: new Date(),
+      lastCheckedAt: new Date()
     }).returning();
 
     return { id: monitor.id };
@@ -160,9 +165,19 @@ export class DatabaseStorage implements IStorage {
 
     let productId: number;
 
+    // Get monitor's creation time to filter old products
+    const monitor = await this.getMonitorById(monitorId);
+    if (!monitor) return;
+
     if (existingProduct) {
+      // If the product already exists but was found after the monitor was created
+      if (existingProduct.foundAt < monitor.createdAt) {
+        log(`Skipping old product found before monitor creation: ${product.title}`);
+        return;
+      }
       productId = existingProduct.id;
     } else {
+      // This is a new product, add it to the database
       const [newProduct] = await db.insert(products)
         .values({
           ...product,
@@ -192,6 +207,7 @@ export class DatabaseStorage implements IStorage {
         })
         .returning();
 
+      log(`Found new product: ${product.title} for monitor ${monitorId}`);
       broadcastUpdate({
         type: 'new_monitored_products',
         products: [product],

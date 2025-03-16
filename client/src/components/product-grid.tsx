@@ -1,4 +1,4 @@
-import { useState, useCallback, useRef } from 'react';
+import { useState, useCallback, useRef, useEffect } from 'react';
 import type { Product } from "@shared/schema";
 import {
   Card,
@@ -27,14 +27,18 @@ export function ProductGrid({
   monitorId,
   onNewProducts 
 }: ProductGridProps) {
-  const [products, setProducts] = useState(initialProducts);
+  const [products, setProducts] = useState<Product[]>([]);
   const { toast } = useToast();
   const seenProducts = useRef(new Set<string>());
 
-  // Initialize seen products from initial products
-  initialProducts.forEach(product => {
-    seenProducts.current.add(`${product.originalUrl}-${product.marketplace}`);
-  });
+  // Reset products when initialProducts changes
+  useEffect(() => {
+    setProducts(initialProducts);
+    // Reset seen products
+    seenProducts.current = new Set(
+      initialProducts.map(p => `${p.originalUrl}-${p.marketplace}`)
+    );
+  }, [initialProducts]);
 
   const isProductUnique = (product: Product) => {
     const key = `${product.originalUrl}-${product.marketplace}`;
@@ -54,23 +58,13 @@ export function ProductGrid({
             // Filter out duplicates
             const uniqueProducts = update.products.filter(isProductUnique);
             if (uniqueProducts.length > 0) {
+              setProducts(prev => [...uniqueProducts, ...prev]);
               onNewProducts?.(uniqueProducts);
               toast({
                 title: 'New Products Found!',
                 description: `Found ${uniqueProducts.length} new items matching your criteria.`,
               });
             }
-          }
-          break;
-        }
-        case 'new_product': {
-          const update = data as { type: string; product: Product };
-          if (isProductUnique(update.product)) {
-            setProducts(prev => [update.product, ...prev]);
-            toast({
-              title: 'New Product',
-              description: `${update.product.title} was just listed!`,
-            });
           }
           break;
         }
@@ -112,10 +106,7 @@ export function ProductGrid({
       );
     }
 
-    // Use the products from state instead of props
-    const displayProducts = products.length > 0 ? products : initialProducts;
-
-    if (displayProducts.length === 0) {
+    if (products.length === 0) {
       return (
         <div className="text-center py-8">
           <p className="text-gray-500">No products found matching your criteria.</p>
@@ -125,7 +116,7 @@ export function ProductGrid({
 
     return (
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-        {displayProducts.map((product) => (
+        {products.map((product) => (
           <Card key={`${product.originalUrl}-${product.marketplace}`} className="overflow-hidden hover:border-primary/20 transition-colors">
             <div className="h-48 relative">
               <img
