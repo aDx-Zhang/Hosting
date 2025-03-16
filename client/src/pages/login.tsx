@@ -55,7 +55,6 @@ export default function Login() {
         });
         setLocation("/");
       } else {
-        console.error('Login failed:', data.error);
         toast({
           title: "Error",
           description: data.error || "Failed to login. Please check your credentials.",
@@ -83,15 +82,11 @@ export default function Login() {
         '--cursor-y': `${mousePosition.y}px`,
       } as React.CSSProperties}
     >
-      {/* Animated background */}
-      <div className="absolute inset-0 w-full h-full bg-background" aria-hidden="true">
-        <div className="absolute inset-0 w-full h-full opacity-50 animate-gradient bg-[length:200%_200%] bg-gradient-to-r from-primary/20 via-primary/5 to-background"></div>
-        <div className="absolute inset-0 w-full h-full opacity-30">
-          <div className="absolute inset-0 rotate-45 blur-3xl bg-gradient-to-r from-primary/30 via-primary/10 to-transparent transform-gpu animate-pulse"></div>
-        </div>
+      <div className="absolute inset-0 w-full h-full bg-background/50">
+        <div className="absolute inset-0 w-full h-full animate-gradient bg-[length:200%_200%] bg-gradient-to-br from-primary/20 via-primary/5 to-transparent"></div>
       </div>
 
-      <Card className="w-full max-w-md bg-card/30 backdrop-blur-xl border-border/50 relative z-10">
+      <Card className="w-full max-w-md bg-card/30 backdrop-blur-xl border-border/50 relative cursor-glow-content">
         <CardHeader className="space-y-4 pb-6">
           <div className="flex justify-center">
             <h1 className="text-3xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-primary/80 to-primary">

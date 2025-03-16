@@ -21,13 +21,19 @@
     content: '';
     position: fixed;
     pointer-events: none;
-    width: 400px;
-    height: 400px;
-    background: radial-gradient(circle at center, theme('colors.primary.DEFAULT/0.15'), transparent 60%);
-    border-radius: 50%;
+    width: 600px;
+    height: 600px;
+    background: radial-gradient(circle at var(--cursor-x) var(--cursor-y), theme('colors.primary.DEFAULT/0.15'), transparent 70%);
+    left: var(--cursor-x);
+    top: var(--cursor-y);
     transform: translate(-50%, -50%);
     z-index: 0;
-    transition: transform 0.2s ease-out;
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  }
+
+  .cursor-glow-content {
+    position: relative;
+    z-index: 10;
   }
 
   @keyframes gradient {
