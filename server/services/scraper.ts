@@ -39,8 +39,6 @@ export class WebScraper {
 
       const products = await page.evaluate(() => {
         const items = document.querySelectorAll('[data-cy="l-card"]');
-        log(`Found ${items.length} items on the page`);
-
         return Array.from(items, item => {
           const titleEl = item.querySelector('h6');
           const priceEl = item.querySelector('p[data-testid="ad-price"]');
@@ -64,8 +62,6 @@ export class WebScraper {
             image,
             marketplace: 'olx',
             originalUrl: link.startsWith('http') ? link : `https://www.olx.pl${link}`,
-            latitude: 52.2297,
-            longitude: 21.0122
           };
         });
       });
@@ -105,8 +101,6 @@ export class WebScraper {
 
       const products = await page.evaluate(() => {
         const items = document.querySelectorAll('[data-box-name="items-v3"] > div > div');
-        log(`Found ${items.length} items on the page`);
-
         return Array.from(items, item => {
           const titleEl = item.querySelector('h2');
           const priceEl = item.querySelector('[aria-label*="cena"]');
@@ -129,8 +123,6 @@ export class WebScraper {
             image,
             marketplace: 'allegro',
             originalUrl: link,
-            latitude: 52.2297,
-            longitude: 21.0122
           };
         });
       });

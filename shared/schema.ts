@@ -2,7 +2,7 @@ import { pgTable, text, serial, integer, doublePrecision, timestamp, jsonb } fro
 import { createInsertSchema } from "drizzle-zod";
 import { z } from "zod";
 
-// Existing tables remain unchanged
+// Update products table to remove location fields
 export const products = pgTable("products", {
   id: serial("id").primaryKey(),
   title: text("title").notNull(),
@@ -11,10 +11,9 @@ export const products = pgTable("products", {
   image: text("image").notNull(),
   marketplace: text("marketplace").notNull(),
   originalUrl: text("original_url").notNull(),
-  latitude: doublePrecision("latitude").notNull(),
-  longitude: doublePrecision("longitude").notNull(),
 });
 
+// Existing tables remain unchanged
 export const monitors = pgTable("monitors", {
   id: serial("id").primaryKey(),
   createdAt: timestamp("created_at").defaultNow().notNull(),
@@ -50,23 +49,22 @@ export const apiKeys = pgTable("api_keys", {
   active: integer("active").default(1),
 });
 
-// Existing schemas
-export const insertProductSchema = createInsertSchema(products);
-export type InsertProduct = z.infer<typeof insertProductSchema>;
-export type Product = typeof products.$inferSelect;
-
+// Update search params to remove location fields
 export const searchParamsSchema = z.object({
   query: z.string(),
   marketplace: z.enum(['all', 'olx', 'vinted', 'allegro']).optional(),
   minPrice: z.number().optional(),
   maxPrice: z.number().optional(),
-  lat: z.number().optional(),
-  lng: z.number().optional(),
-  radius: z.number().optional(),
   updateFrequency: z.number().min(10).max(300).default(30),
 });
 
 export type SearchParams = z.infer<typeof searchParamsSchema>;
+
+// Existing schemas
+export const insertProductSchema = createInsertSchema(products);
+export type InsertProduct = z.infer<typeof insertProductSchema>;
+export type Product = typeof products.$inferSelect;
+
 
 // New schemas for authentication
 export const loginSchema = z.object({
