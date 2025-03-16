@@ -253,6 +253,7 @@ router.post("/register", async (req, res) => {
     }
 
     // Find and validate the API key
+    log(`Checking API key: ${apiKey}`);
     const [key] = await db.select()
       .from(apiKeysTable)
       .where(
@@ -264,6 +265,7 @@ router.post("/register", async (req, res) => {
       );
 
     if (!key) {
+      log('API key validation failed');
       return res.status(400).json({
         error: "Invalid API key",
         message: "The provided API key is invalid or has already been used"
