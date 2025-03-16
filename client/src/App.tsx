@@ -10,16 +10,15 @@ import AdminPanel from "@/pages/admin-panel";
 import { useAuth } from "@/hooks/use-auth";
 import { Loader2 } from "lucide-react";
 import { Redirect } from "wouter";
-import Register from "@/pages/register"; // Added import for Register component
-import UserPanel from "@/pages/user-panel"; // Added import for UserPanel component
-
+import Register from "@/pages/register";
+import UserPanel from "@/pages/user-panel";
 
 function Navigation() {
   const [location] = useLocation();
   const { user } = useAuth();
 
-  // Don't show navigation on login page
-  if (location === "/login") {
+  // Don't show navigation on login or register pages, or when user is not logged in
+  if (location === "/login" || location === "/register" || !user) {
     return null;
   }
 
