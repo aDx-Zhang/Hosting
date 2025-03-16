@@ -48,6 +48,7 @@ export function useWebSocket({ onMessage }: WebSocketHookOptions = {}) {
           if (data.type === 'connection_established') {
             setIsConnected(true);
             setIsConnecting(false);
+            // No toast here to avoid UI clutter
           } else {
             onMessage?.(data);
           }
@@ -80,8 +81,9 @@ export function useWebSocket({ onMessage }: WebSocketHookOptions = {}) {
           // Set up new reconnection attempt
           console.log(`Attempting reconnect in ${backoffTime}ms (attempt ${reconnectAttempt.current})`);
           reconnectTimeoutRef.current = setTimeout(() => {
-            setIsConnecting(true);
-            connect();
+            if (!isConnected && !isConnecting) {
+              connect();
+            }
           }, backoffTime);
 
           // Only show toast on first disconnect
@@ -105,7 +107,7 @@ export function useWebSocket({ onMessage }: WebSocketHookOptions = {}) {
       setIsConnected(false);
       setIsConnecting(false);
     }
-  }, [onMessage, toast]);
+  }, [onMessage, toast, isConnected, isConnecting]);
 
   useEffect(() => {
     connect();
