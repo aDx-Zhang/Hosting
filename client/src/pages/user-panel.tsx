@@ -1,6 +1,6 @@
 import { useAuth } from "@/hooks/use-auth";
 import { useQuery, useMutation } from "@tanstack/react-query";
-import { Loader2, Calendar, CheckCircle2, XCircle } from "lucide-react";
+import { Loader2, Calendar, CheckCircle2, XCircle, LogOut } from "lucide-react";
 import { Redirect } from "wouter";
 import {
   Card,
@@ -77,6 +77,19 @@ export default function UserPanel() {
     }
   });
 
+  const handleLogout = async () => {
+    try {
+      await fetch("/api/auth/logout", { method: "POST" });
+      window.location.href = "/login";
+    } catch (error) {
+      toast({
+        title: "Error",
+        description: "Failed to logout. Please try again.",
+        variant: "destructive",
+      });
+    }
+  };
+
   if (isLoading) {
     return (
       <div className="flex items-center justify-center min-h-screen">
@@ -87,7 +100,17 @@ export default function UserPanel() {
 
   return (
     <div className="container mx-auto py-8 px-4">
-      <h1 className="text-4xl font-bold mb-8">Account Information</h1>
+      <div className="flex items-center justify-between mb-8">
+        <h1 className="text-4xl font-bold">Account Information</h1>
+        <Button
+          variant="outline"
+          className="flex items-center gap-2 text-destructive hover:text-destructive hover:bg-destructive/10"
+          onClick={handleLogout}
+        >
+          <LogOut className="h-4 w-4" />
+          Logout
+        </Button>
+      </div>
 
       <div className="grid gap-6">
         <Card className="overflow-hidden">
@@ -115,8 +138,16 @@ export default function UserPanel() {
                   <div className="flex items-center gap-2 text-muted-foreground">
                     <Calendar className="h-4 w-4" />
                     <span>
-                      Expires: {new Date(subscription.expiresAt).toLocaleDateString()} 
-                      ({formatTimeLeft(subscription.expiresAt)})
+                      {subscription.active ? (
+                        <>
+                          Expires: {new Date(subscription.expiresAt).toLocaleDateString()} 
+                          <span className="ml-2 text-primary">
+                            ({formatTimeLeft(subscription.expiresAt)})
+                          </span>
+                        </>
+                      ) : (
+                        'Subscription expired'
+                      )}
                     </span>
                   </div>
                 </div>
