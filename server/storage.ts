@@ -69,7 +69,7 @@ export class DatabaseStorage implements IStorage {
         );
       }
 
-      // Store filtered products in database
+      // Store filtered products in database with current timestamp
       const now = new Date();
       for (const product of filteredProducts) {
         try {
@@ -108,12 +108,14 @@ export class DatabaseStorage implements IStorage {
   }
 
   async createMonitor(params: SearchParams, userId: number): Promise<{ id: number }> {
+    const now = new Date();
     const [monitor] = await db.insert(monitors).values({
       params: params,
       active: 1,
       userId,
-      createdAt: new Date(),
-      lastCheckedAt: new Date()
+      createdAt: now,
+      lastCheckedAt: now,
+      updateFrequency: params.updateFrequency
     }).returning();
 
     return { id: monitor.id };
@@ -153,6 +155,10 @@ export class DatabaseStorage implements IStorage {
   }
 
   async addProductToMonitor(monitorId: number, product: Product): Promise<void> {
+    // Get monitor's creation time to filter old products
+    const monitor = await this.getMonitorById(monitorId);
+    if (!monitor) return;
+
     // First check if this product is already in the database
     const [existingProduct] = await db.select()
       .from(products)
@@ -165,13 +171,9 @@ export class DatabaseStorage implements IStorage {
 
     let productId: number;
 
-    // Get monitor's creation time to filter old products
-    const monitor = await this.getMonitorById(monitorId);
-    if (!monitor) return;
-
     if (existingProduct) {
-      // If the product already exists but was found after the monitor was created
-      if (existingProduct.foundAt < monitor.createdAt) {
+      // Skip products found before the monitor was created
+      if (existingProduct.foundAt <= monitor.createdAt) {
         log(`Skipping old product found before monitor creation: ${product.title}`);
         return;
       }
