@@ -19,7 +19,7 @@ interface Monitor {
 function formatMonitorTitle(params: SearchParams): string {
   const parts = [];
 
-  if (params.query) {
+  if (params.query && params.query.trim()) {
     parts.push(`"${params.query}"`);
   }
 
@@ -64,7 +64,11 @@ export default function Monitor() {
         const data = await res.json();
         setMonitors(data.map((monitor: any) => ({
           id: monitor.id.toString(),
-          params: monitor.params,
+          params: {
+            ...monitor.params,
+            query: monitor.params.query || "", 
+            marketplace: monitor.params.marketplace || "all"
+          },
           products: []
         })));
       } catch (error) {
