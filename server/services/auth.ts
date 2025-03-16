@@ -6,25 +6,40 @@ import { eq } from "drizzle-orm";
 const SALT_ROUNDS = 10;
 
 export class AuthService {
-  async createUser(username: string, password: string, role: "admin" | "user" = "user"): Promise<User> {
-    const hashedPassword = await hash(password, SALT_ROUNDS);
-    console.log(`Creating user ${username} with role ${role}`);
+  async createInitialAdminUser() {
+    try {
+      // Check if admin exists
+      const [existingAdmin] = await db.select()
+        .from(users)
+        .where(eq(users.username, 'admin'));
 
-    // Create user with hashed password
-    const [user] = await db.insert(users)
-      .values({
-        username,
-        password: hashedPassword,
-        role
-      })
-      .returning();
+      if (!existingAdmin) {
+        const password = 'admin123';
+        const hashedPassword = await hash(password, SALT_ROUNDS);
 
-    return user;
+        const [user] = await db.insert(users)
+          .values({
+            username: 'admin',
+            password: hashedPassword,
+            role: 'admin'
+          })
+          .returning();
+
+        console.log('Created initial admin user:', user.username);
+        return user;
+      }
+
+      return existingAdmin;
+    } catch (error) {
+      console.error('Error creating admin user:', error);
+      throw error;
+    }
   }
 
   async validateUser(username: string, password: string): Promise<User | null> {
     try {
-      // Find user by username
+      console.log(`Attempting to validate user: ${username}`);
+
       const [user] = await db.select()
         .from(users)
         .where(eq(users.username, username));
@@ -34,12 +49,6 @@ export class AuthService {
         return null;
       }
 
-      // Log the received password for debugging
-      console.log(`Validating user ${username}`);
-      console.log(`Received password length: ${password.length}`);
-      console.log(`Stored hash: ${user.password}`);
-
-      // Compare password
       const isValid = await compare(password, user.password);
       console.log(`Password validation result for ${username}: ${isValid}`);
 
