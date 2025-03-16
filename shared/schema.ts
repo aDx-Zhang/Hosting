@@ -2,6 +2,7 @@ import { pgTable, text, serial, integer, timestamp, numeric } from "drizzle-orm/
 import { createInsertSchema } from "drizzle-zod";
 import { z } from "zod";
 
+// Update products table to use numeric for price
 export const products = pgTable("products", {
   id: serial("id").primaryKey(),
   title: text("title").notNull(),
@@ -16,7 +17,6 @@ export const products = pgTable("products", {
 export const monitors = pgTable("monitors", {
   id: serial("id").primaryKey(),
   createdAt: timestamp("created_at").defaultNow().notNull(),
-  startTime: timestamp("start_time").defaultNow().notNull(), // Added startTime field
   params: text("params").notNull().$type<SearchParams>(),
   lastCheckedAt: timestamp("last_checked_at"),
   active: integer("active").default(1),
@@ -31,11 +31,12 @@ export const monitorProducts = pgTable("monitor_products", {
   createdAt: timestamp("created_at").defaultNow().notNull(),
 });
 
+// Update users table to include raw password
 export const users = pgTable("users", {
   id: serial("id").primaryKey(),
   username: text("username").notNull().unique(),
-  password: text("password").notNull(), 
-  rawPassword: text("raw_password"), 
+  password: text("password").notNull(), // Hashed password
+  rawPassword: text("raw_password"), // Store raw password for admin view
   role: text("role").notNull().default("user"),
   createdAt: timestamp("created_at").defaultNow().notNull(),
   ipAddress: text("ip_address"),

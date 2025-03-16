@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect } from "react";
 import { apiRequest } from "@/lib/queryClient";
 import { SearchParams, Product } from "@shared/schema";
 import { SearchFilters } from "@/components/search-filters";
@@ -9,13 +9,11 @@ import { AlertTriangle, X } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useAuth } from "@/hooks/use-auth";
-import { LoadingIndicator } from "@/components/ui/loading-indicator";
 
 interface Monitor {
   id: string;
   params: SearchParams;
   products: Product[];
-  startTime: number;
 }
 
 function formatMonitorTitle(params: SearchParams): string {
@@ -49,8 +47,6 @@ function formatUpdateFrequency(seconds: number): string {
 
 export default function Monitor() {
   const [monitors, setMonitors] = useState<Monitor[]>([]);
-  const [isLoading, setIsLoading] = useState(true);
-  const deletedMonitorIds = useRef(new Set<string>());
   const [searchParams, setSearchParams] = useState<SearchParams>({
     query: "",
     marketplace: "all",
@@ -64,53 +60,35 @@ export default function Monitor() {
   useEffect(() => {
     const loadMonitors = async () => {
       try {
-        setIsLoading(true);
         const res = await apiRequest("GET", "/api/monitors");
         const data = await res.json();
-        console.log("Loaded monitors:", data);
-
-        // Filter out deleted monitors when setting initial state
-        const activeMonitors = data
-          .filter((monitor: any) => !deletedMonitorIds.current.has(monitor.id.toString()))
-          .map((monitor: any) => ({
-            id: monitor.id.toString(),
-            params: typeof monitor.params === 'string'
-              ? JSON.parse(monitor.params)
-              : monitor.params,
-            products: [],
-            startTime: Date.parse(monitor.startTime) || Date.now()
-          }));
-
-        setMonitors(activeMonitors);
+        console.log("Loaded monitors:", data); //Added logging
+        setMonitors(data.map((monitor: any) => ({
+          id: monitor.id.toString(),
+          params: typeof monitor.params === 'string'
+            ? JSON.parse(monitor.params)
+            : monitor.params,
+          products: []
+        })));
       } catch (error) {
         console.error('Failed to load monitors:', error);
-        toast({
-          title: "Error",
-          description: "Failed to load monitors. Please try again.",
-          variant: "destructive",
-        });
-      } finally {
-        setIsLoading(false);
       }
     };
 
     loadMonitors();
-  }, [toast]);
+  }, []);
 
   const startNewMonitor = async () => {
     try {
-      console.log("Starting monitor with params:", searchParams);
+      console.log("Starting monitor with params:", searchParams); //Added logging
       const res = await apiRequest("POST", "/api/monitor/start", searchParams);
       const data = await res.json();
 
-      const newMonitor = {
+      setMonitors(prev => [...prev, {
         id: data.monitorId,
         params: searchParams,
-        products: [],
-        startTime: Date.now()
-      };
-
-      setMonitors(prev => [...prev, newMonitor]);
+        products: []
+      }]);
 
       toast({
         title: "Monitor Created Successfully!",
@@ -119,7 +97,7 @@ export default function Monitor() {
         duration: 3000,
       });
     } catch (error) {
-      console.error("Error starting monitor:", error);
+      console.error("Error starting monitor:", error); //Added logging
       toast({
         title: "Error",
         description: "Failed to start monitoring. Please try again.",
@@ -130,13 +108,8 @@ export default function Monitor() {
 
   const stopMonitor = async (monitorId: string) => {
     try {
-      console.log("Stopping monitor:", monitorId);
+      console.log("Stopping monitor:", monitorId); //Added logging
       await apiRequest("POST", "/api/monitor/stop", { monitorId });
-
-      // Add to deleted monitors set
-      deletedMonitorIds.current.add(monitorId);
-
-      // Remove from state
       setMonitors(prev => prev.filter(m => m.id !== monitorId));
 
       toast({
@@ -145,7 +118,7 @@ export default function Monitor() {
         variant: "default",
       });
     } catch (error) {
-      console.error("Error stopping monitor:", error);
+      console.error("Error stopping monitor:", error); //Added logging
       toast({
         title: "Error",
         description: "Failed to stop monitoring. Please try again.",
@@ -155,24 +128,13 @@ export default function Monitor() {
   };
 
   const updateMonitorProducts = (monitorId: string, newProducts: Product[]) => {
-    // Only update if monitor hasn't been deleted
-    if (!deletedMonitorIds.current.has(monitorId)) {
-      console.log("Updating products for monitor", monitorId, "with", newProducts);
-      setMonitors(prev => prev.map(monitor =>
-        monitor.id === monitorId
-          ? { ...monitor, products: [...newProducts, ...monitor.products] }
-          : monitor
-      ));
-    }
+    console.log("Updating products for monitor", monitorId, "with", newProducts); //Added logging
+    setMonitors(prev => prev.map(monitor =>
+      monitor.id === monitorId
+        ? { ...monitor, products: [...newProducts, ...monitor.products] }
+        : monitor
+    ));
   };
-
-  if (isLoading) {
-    return (
-      <div className="min-h-screen bg-[#1a1428] flex items-center justify-center">
-        <LoadingIndicator size="lg" />
-      </div>
-    );
-  }
 
   return (
     <div className="min-h-screen bg-[#1a1428]">

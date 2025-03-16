@@ -104,14 +104,11 @@ export class DatabaseStorage implements IStorage {
   }
 
   async createMonitor(params: SearchParams, userId: number): Promise<{ id: number }> {
-    const now = new Date();
     const [monitor] = await db.insert(monitors).values({
       params: params,
       active: 1,
       userId,
-      createdAt: now,
-      startTime: now,
-      updateFrequency: params.updateFrequency || 30
+      createdAt: new Date()
     }).returning();
 
     return { id: monitor.id };
@@ -151,15 +148,6 @@ export class DatabaseStorage implements IStorage {
   }
 
   async addProductToMonitor(monitorId: number, product: Product): Promise<void> {
-    // Get monitor creation time to filter old products
-    const [monitor] = await db.select({
-      createdAt: monitors.createdAt
-    })
-    .from(monitors)
-    .where(eq(monitors.id, monitorId));
-
-    if (!monitor) return;
-
     // First check if this product is already in the database
     const [existingProduct] = await db.select()
       .from(products)
@@ -173,17 +161,11 @@ export class DatabaseStorage implements IStorage {
     let productId: number;
 
     if (existingProduct) {
-      // If the product was found before the monitor was created, don't add it
-      if (existingProduct.foundAt < monitor.createdAt) {
-        return;
-      }
       productId = existingProduct.id;
     } else {
       const [newProduct] = await db.insert(products)
         .values({
           ...product,
-          // Convert string price to numeric for database storage
-          price: typeof product.price === 'string' ? parseFloat(product.price) : product.price,
           foundAt: new Date()
         })
         .returning();
