@@ -138,6 +138,8 @@ router.post("/generate-key", async (req, res) => {
     const { durationDays } = apiKeySchema.parse(req.body);
     const key = nanoid(32);
 
+    log(`Generating API key with duration: ${durationDays} days`);
+
     const [apiKey] = await db.insert(apiKeysTable)
       .values({
         key,
@@ -148,6 +150,7 @@ router.post("/generate-key", async (req, res) => {
       })
       .returning();
 
+    log(`Successfully generated API key: ${key}`);
     res.json(apiKey);
   } catch (error) {
     log(`Error generating API key: ${error}`);
