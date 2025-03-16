@@ -15,8 +15,8 @@ export function useWebSocket({ onMessage }: WebSocketHookOptions = {}) {
   const reconnectTimeoutRef = useRef<NodeJS.Timeout>();
 
   const connect = useCallback(() => {
-    // Don't try to reconnect if we're already connected
-    if (socket.current?.readyState === WebSocket.OPEN) {
+    // Don't try to reconnect if we're already connected or connecting
+    if (socket.current?.readyState === WebSocket.OPEN || isConnecting) {
       return;
     }
 
@@ -48,7 +48,6 @@ export function useWebSocket({ onMessage }: WebSocketHookOptions = {}) {
           if (data.type === 'connection_established') {
             setIsConnected(true);
             setIsConnecting(false);
-            // No toast here to avoid UI clutter
           } else {
             onMessage?.(data);
           }
@@ -81,6 +80,7 @@ export function useWebSocket({ onMessage }: WebSocketHookOptions = {}) {
           // Set up new reconnection attempt
           console.log(`Attempting reconnect in ${backoffTime}ms (attempt ${reconnectAttempt.current})`);
           reconnectTimeoutRef.current = setTimeout(() => {
+            // Double check we're still disconnected before attempting reconnect
             if (!isConnected && !isConnecting) {
               connect();
             }

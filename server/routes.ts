@@ -87,7 +87,7 @@ export async function registerRoutes(app: Express) {
 
   function noop() {}
 
-  // Ping clients every 45 seconds (increased from 30) to keep connections alive
+  // Ping clients every 60 seconds to keep connections alive
   const interval = setInterval(() => {
     wss.clients.forEach((ws: WebSocket & { isAlive?: boolean }) => {
       if (ws.isAlive === false) {
@@ -98,7 +98,7 @@ export async function registerRoutes(app: Express) {
       ws.isAlive = false;
       ws.ping(noop);
     });
-  }, 45000); // Increased interval
+  }, 60000); // Increased interval to 60 seconds
 
   wss.on('connection', (ws: WebSocket & { isAlive?: boolean }) => {
     log('New WebSocket client connected');

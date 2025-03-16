@@ -15,7 +15,8 @@ const PostgresqlStore = pgSession(session);
 app.use(session({
   store: new PostgresqlStore({
     pool,
-    tableName: 'session'
+    tableName: 'session',
+    createTableIfMissing: true
   }),
   secret: 'your-secret-key',
   resave: false,
