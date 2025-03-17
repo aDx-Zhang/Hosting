@@ -257,6 +257,7 @@ export default function AdminPanel() {
                 <thead>
                   <tr className="border-b">
                     <th className="text-left p-4">Key</th>
+                    <th className="text-left p-4">Duration</th>
                     <th className="text-left p-4">Created</th>
                     <th className="text-left p-4">Expires</th>
                     <th className="text-left p-4">Status</th>
@@ -267,6 +268,9 @@ export default function AdminPanel() {
                   {apiKeys?.map((key) => (
                     <tr key={key.id} className="border-b">
                       <td className="p-4 font-mono">{key.key}</td>
+                      <td className="p-4">
+                        {key.durationDays} {key.durationDays === 1 ? 'day' : 'days'}
+                      </td>
                       <td className="p-4">
                         {new Date(key.createdAt).toLocaleDateString()}
                       </td>
