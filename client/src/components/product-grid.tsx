@@ -141,6 +141,9 @@ export function ProductGrid({
               <p className="text-muted-foreground line-clamp-2">
                 {product.description}
               </p>
+              <p className="text-xs text-muted-foreground mt-2">
+                Found: {new Date(product.foundAt).toLocaleString('pl-PL')}
+              </p>
             </CardContent>
             <CardFooter className="p-4">
               <Button

@@ -34,11 +34,12 @@ export class DatabaseStorage implements IStorage {
 
       results.forEach((result) => {
         if (result.status === 'fulfilled' && result.value.length > 0) {
-          // Ensure prices are converted to strings for database storage
+          // Set foundAt to current time for each new product
+          const foundAt = new Date();
           const products = result.value.map(product => ({
             ...product,
             price: product.price.toString(),
-            foundAt: new Date() // Set foundAt to current time for new products
+            foundAt // Add foundAt timestamp for each product
           }));
           allProducts.push(...products);
         }
@@ -74,6 +75,7 @@ export class DatabaseStorage implements IStorage {
       for (const product of filteredProducts) {
         try {
           await this.createProduct(product);
+          log(`Stored product with foundAt: ${product.foundAt}`);
         } catch (error) {
           log(`Error storing product: ${error}`);
         }
@@ -83,7 +85,7 @@ export class DatabaseStorage implements IStorage {
         log(`Filtering products found after monitor creation: ${monitorCreatedAt}`);
         // Only return products found after monitor creation
         const newProducts = filteredProducts.filter(product =>
-          new Date(product.foundAt) > monitorCreatedAt
+          product.foundAt > monitorCreatedAt
         );
         log(`Found ${newProducts.length} new products after monitor creation`);
         return newProducts;
