@@ -53,7 +53,6 @@ export class DatabaseStorage implements IStorage {
       if (params.minPrice !== undefined) {
         filteredProducts = filteredProducts.filter(product => {
           const price = parseFloat(product.price);
-          log(`Checking price ${price} >= ${params.minPrice}`);
           return price >= params.minPrice!;
         });
       }
@@ -61,7 +60,6 @@ export class DatabaseStorage implements IStorage {
       if (params.maxPrice !== undefined) {
         filteredProducts = filteredProducts.filter(product => {
           const price = parseFloat(product.price);
-          log(`Checking price ${price} <= ${params.maxPrice}`);
           return price <= params.maxPrice!;
         });
       }
@@ -72,27 +70,22 @@ export class DatabaseStorage implements IStorage {
         );
       }
 
-      // Store filtered products but only return ones found after monitor creation
+      // Store filtered products and return the ones found after monitor creation
       for (const product of filteredProducts) {
         try {
-          await this.createProduct(product);
-          log(`Stored product with foundAt: ${product.foundAt}`);
+          const createdProduct = await this.createProduct(product);
+          log(`Created product: ${createdProduct.id}`);
+
+          // If this is for a monitor, add it to the monitor immediately
+          if (monitorCreatedAt) {
+            await this.addProductToMonitor(parseInt(params.monitorId!), createdProduct);
+          }
         } catch (error) {
           log(`Error storing product: ${error}`);
         }
       }
 
-      if (monitorCreatedAt) {
-        log(`Filtering products found after monitor creation: ${monitorCreatedAt}`);
-        // Only return products found after monitor creation
-        const newProducts = filteredProducts.filter(product =>
-          product.foundAt > monitorCreatedAt
-        );
-        log(`Found ${newProducts.length} new products after monitor creation`);
-        return newProducts;
-      }
-
-      return [];
+      return filteredProducts;
     } catch (error) {
       log(`Error searching products: ${error}`);
       return [];
@@ -185,7 +178,7 @@ export class DatabaseStorage implements IStorage {
         return;
       }
 
-      log(`Adding product ${product.id} (${product.title}) to monitor ${monitorId}`);
+      log(`Adding product ${product.id} to monitor ${monitorId}`);
 
       // Check if this product is already linked to this monitor
       const [existingMonitorProduct] = await db.select()
