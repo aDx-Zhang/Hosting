@@ -1,6 +1,7 @@
 import { SearchParams, Product } from "@shared/schema";
 import { storage } from "../storage";
 import { log } from "../vite";
+import { broadcastUpdate } from "../routes";
 
 class MonitoringService {
   private monitoringIntervals: Map<string, NodeJS.Timeout> = new Map();
@@ -16,7 +17,7 @@ class MonitoringService {
         return { monitorId };
       }
 
-      // Use a 30-second update frequency for testing
+      // Use a 30-second update frequency
       const updateFrequency = 30 * 1000; // 30 seconds
       log(`Setting update frequency to ${updateFrequency}ms for monitor ${monitorId}`);
 
@@ -25,7 +26,7 @@ class MonitoringService {
           // Add monitorId to search params
           const searchParams = {
             ...params,
-            monitorId: monitorId
+            monitorId
           };
 
           log(`Checking for new products with params:`, searchParams);
@@ -43,7 +44,7 @@ class MonitoringService {
           if (products.length > 0) {
             broadcastUpdate({
               type: 'new_monitored_products',
-              products: products,
+              products,
               monitorId
             });
           }
@@ -54,7 +55,7 @@ class MonitoringService {
 
       this.monitoringIntervals.set(monitorId, interval);
       log(`Started monitor ${monitorId} with params: ${JSON.stringify(params)}`);
-      return { monitorId };
+      return { id };
     } catch (error) {
       log(`Error starting monitor: ${error}`);
       throw error;
