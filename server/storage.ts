@@ -229,48 +229,24 @@ export class DatabaseStorage implements IStorage {
     const millisecondsPerDay = 24 * 60 * 60 * 1000;
     const now = new Date();
 
-    log(`Starting addApiKey process for user ${userId} with ${durationDays} days duration`);
-
     try {
-      // Find latest active key to extend if it exists
-      const [latestKey] = await db.select()
-        .from(apiKeys)
-        .where(
-          and(
-            eq(apiKeys.userId, userId),
-            eq(apiKeys.active, 1)
-          )
-        )
-        .orderBy(desc(apiKeys.expiresAt))
-        .limit(1);
+      // Calculate expiry date from now
+      const expiryDate = new Date(now.getTime() + (durationDays * millisecondsPerDay));
 
-      let expiryDate = new Date(now.getTime() + (durationDays * millisecondsPerDay));
-
-      if (latestKey) {
-        // If we have an active key, extend from its expiry date
-        expiryDate = new Date(latestKey.expiresAt.getTime() + (durationDays * millisecondsPerDay));
-        log(`Found active key expiring at ${latestKey.expiresAt.toISOString()}`);
-        log(`Extending duration by ${durationDays} days`);
-        log(`New expiry will be ${expiryDate.toISOString()}`);
-      }
-
-      // Create new key with calculated expiry
-      const [newKey] = await db.insert(apiKeys)
-        .values({
-          key,
+      // Update the key with user_id and expiry date using drizzle's update
+      await db.update(apiKeys)
+        .set({
           userId,
           expiresAt: expiryDate,
-          active: 1,
           durationDays,
-          createdAt: now
+          active: 1
         })
-        .returning();
+        .where(eq(apiKeys.key, key));
 
-      log(`Created new key ${newKey.id} expiring at ${expiryDate.toISOString()}`);
-
+      log(`Assigned API key to user ${userId} with expiry at ${expiryDate.toISOString()}`);
     } catch (error) {
       log(`Error in addApiKey: ${error}`);
-      throw error;
+      throw new Error('Failed to add API key');
     }
   }
 }
