@@ -230,7 +230,7 @@ export class DatabaseStorage implements IStorage {
     const now = new Date();
 
     try {
-      // First check if this is a valid key
+      // First validate if key exists
       const [keyToActivate] = await db.select()
         .from(apiKeys)
         .where(eq(apiKeys.key, key))
@@ -240,23 +240,35 @@ export class DatabaseStorage implements IStorage {
         throw new Error('Invalid API key');
       }
 
-      // Find latest expiry date from any active key for this user
-      const [latestKey] = await db.select()
+      // Find current active subscription if exists
+      const [currentSubscription] = await db.select()
         .from(apiKeys)
-        .where(eq(apiKeys.userId, userId))
+        .where(
+          and(
+            eq(apiKeys.userId, userId),
+            eq(apiKeys.active, 1),
+            gte(apiKeys.expiresAt, now)
+          )
+        )
         .orderBy(desc(apiKeys.expiresAt))
         .limit(1);
 
-      // Calculate new expiry date from latest expiry or now
-      const startDate = latestKey?.expiresAt || now;
-      const expiryDate = new Date(startDate.getTime() + (durationDays * millisecondsPerDay));
+      // Calculate new expiry date
+      let expiryDate: Date;
 
-      log(`Adding API key for user ${userId}`);
-      log(`Duration: ${durationDays} days`);
-      log(`Start date: ${startDate.toISOString()}`);
-      log(`New expiry: ${expiryDate.toISOString()}`);
+      if (currentSubscription?.expiresAt) {
+        // If there's an active subscription, extend from its expiry date
+        expiryDate = new Date(currentSubscription.expiresAt.getTime() + (durationDays * millisecondsPerDay));
+        log(`Extending from existing subscription that expires at ${currentSubscription.expiresAt}`);
+      } else {
+        // Otherwise start from now
+        expiryDate = new Date(now.getTime() + (durationDays * millisecondsPerDay));
+        log(`Starting new subscription from current time`);
+      }
 
-      // Activate this key and set the new expiry date
+      log(`Setting expiry date to: ${expiryDate.toISOString()}`);
+
+      // Update the key with user and new expiry
       await db.update(apiKeys)
         .set({
           userId,
@@ -266,7 +278,7 @@ export class DatabaseStorage implements IStorage {
         })
         .where(eq(apiKeys.key, key));
 
-      log(`Successfully activated key and set expiry to ${expiryDate.toISOString()}`);
+      log(`Successfully activated key ${key} for user ${userId}`);
     } catch (error) {
       log(`Error in addApiKey: ${error}`);
       throw new Error('Failed to add API key');
