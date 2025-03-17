@@ -63,19 +63,25 @@ export async function registerRoutes(app: Express) {
         return res.status(403).json({ error: "Not authorized" });
       }
 
-      const product = insertProductSchema.parse(req.body);
-      const createdProduct = await storage.createProduct(product);
+      // Parse and create the product
+      const productData = insertProductSchema.parse(req.body);
+      log(`Creating test product: ${productData.title}`);
+
+      const createdProduct = await storage.createProduct(productData);
+      log(`Successfully created test product with ID: ${createdProduct.id}`);
 
       // Get all active monitors to broadcast the new product
       const monitors = await storage.getActiveMonitors(req.session.userId);
+      log(`Found ${monitors.length} active monitors to update`);
 
-      // Broadcast to each monitor separately
+      // Add product to each monitor
       for (const monitor of monitors) {
-        broadcastUpdate({
-          type: 'new_monitored_products',
-          products: [createdProduct],
-          monitorId: monitor.id.toString()
-        });
+        try {
+          await storage.addProductToMonitor(monitor.id, createdProduct);
+          log(`Added product to monitor ${monitor.id}`);
+        } catch (error) {
+          log(`Error adding product to monitor ${monitor.id}: ${error}`);
+        }
       }
 
       res.json(createdProduct);

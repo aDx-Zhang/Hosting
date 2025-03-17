@@ -105,15 +105,26 @@ export class DatabaseStorage implements IStorage {
   }
 
   async createProduct(product: InsertProduct): Promise<Product> {
-    const [newProduct] = await db.insert(products)
-      .values({
-        ...product,
-        // Convert string price to numeric for database storage
-        price: typeof product.price === 'string' ? parseFloat(product.price) : product.price,
-        foundAt: product.foundAt || new Date()
-      })
-      .returning();
-    return newProduct;
+    try {
+      log(`Creating product: ${product.title}`);
+      const [newProduct] = await db.insert(products)
+        .values({
+          title: product.title,
+          description: product.description,
+          price: product.price,
+          image: product.image,
+          marketplace: product.marketplace,
+          originalUrl: product.originalUrl,
+          foundAt: product.foundAt || new Date()
+        })
+        .returning();
+
+      log(`Created product with ID: ${newProduct.id}`);
+      return newProduct;
+    } catch (error) {
+      log(`Error creating product: ${error}`);
+      throw error;
+    }
   }
 
   async createMonitor(params: SearchParams, userId: number): Promise<{ id: number }> {
@@ -166,44 +177,49 @@ export class DatabaseStorage implements IStorage {
   }
 
   async addProductToMonitor(monitorId: number, product: Product): Promise<void> {
-    // Get monitor's creation time to filter old products
-    const monitor = await this.getMonitorById(monitorId);
-    if (!monitor) return;
+    try {
+      // Get monitor's creation time to filter old products
+      const monitor = await this.getMonitorById(monitorId);
+      if (!monitor) {
+        log(`Monitor ${monitorId} not found`);
+        return;
+      }
 
-    log(`Adding product ${product.title} to monitor ${monitorId}, monitor created at ${monitor.createdAt}`);
+      log(`Adding product ${product.id} (${product.title}) to monitor ${monitorId}`);
 
-    // Skip if product was found before monitor creation
-    if (new Date(product.foundAt) <= monitor.createdAt) {
-      log(`Skipping old product found before monitor creation: ${product.title}`);
-      return;
-    }
+      // Check if this product is already linked to this monitor
+      const [existingMonitorProduct] = await db.select()
+        .from(monitorProducts)
+        .where(
+          and(
+            eq(monitorProducts.monitorId, monitorId),
+            eq(monitorProducts.productId, product.id)
+          )
+        );
 
-    // Check if this product is already linked to this monitor
-    const [existingMonitorProduct] = await db.select()
-      .from(monitorProducts)
-      .where(
-        and(
-          eq(monitorProducts.monitorId, monitorId),
-          eq(monitorProducts.productId, product.id)
-        )
-      );
+      // Only add to monitor and broadcast if it's a new product for this monitor
+      if (!existingMonitorProduct) {
+        await db.insert(monitorProducts)
+          .values({
+            monitorId,
+            productId: product.id,
+            createdAt: new Date()
+          });
 
-    // Only add to monitor and broadcast if it's a new product for this monitor
-    if (!existingMonitorProduct) {
-      await db.insert(monitorProducts)
-        .values({
-          monitorId,
-          productId: product.id,
-          createdAt: new Date()
-        })
-        .returning();
+        log(`Successfully linked product ${product.id} to monitor ${monitorId}`);
 
-      log(`Broadcasting new product: ${product.title} for monitor ${monitorId}`);
-      broadcastUpdate({
-        type: 'new_monitored_products',
-        products: [product],
-        monitorId: monitorId.toString()
-      });
+        // Broadcast the new product
+        broadcastUpdate({
+          type: 'new_monitored_products',
+          products: [product],
+          monitorId: monitorId.toString()
+        });
+      } else {
+        log(`Product ${product.id} already linked to monitor ${monitorId}`);
+      }
+    } catch (error) {
+      log(`Error adding product to monitor: ${error}`);
+      throw error;
     }
   }
 
