@@ -1,6 +1,4 @@
 import { SearchParams, Product } from "@shared/schema";
-import { marketplaceService } from "./marketplaces";
-import { broadcastUpdate } from "../routes";
 import { storage } from "../storage";
 import { log } from "../vite";
 
@@ -18,56 +16,34 @@ class MonitoringService {
         return { monitorId };
       }
 
-      // Use the custom update frequency or default to 30 seconds
-      const updateFrequency = (params.updateFrequency || 30) * 1000; // Convert to milliseconds
+      // Use a 30-second update frequency for testing
+      const updateFrequency = 30 * 1000; // 30 seconds
       log(`Setting update frequency to ${updateFrequency}ms for monitor ${monitorId}`);
 
       const interval = setInterval(async () => {
         try {
-          log(`Checking for new products with query: ${params.query}`);
-          const results = await Promise.allSettled([
-            marketplaceService.searchOLX(params.query || ''),
-            marketplaceService.searchAllegro(params.query || ''),
-            marketplaceService.searchVinted(params.query || '')
-          ]);
+          // Add monitorId to search params
+          const searchParams = {
+            ...params,
+            monitorId: monitorId
+          };
 
-          const newProducts: Product[] = [];
-          for (const result of results) {
-            if (result.status === 'fulfilled') {
-              for (const product of result.value) {
-                // Skip if product doesn't match price range
-                const productPrice = parseFloat(product.price.toString());
-                if (params.minPrice !== undefined && productPrice < params.minPrice) {
-                  log(`Skipping product ${product.title} (price ${productPrice} < min ${params.minPrice})`);
-                  continue;
-                }
-                if (params.maxPrice !== undefined && productPrice > params.maxPrice) {
-                  log(`Skipping product ${product.title} (price ${productPrice} > max ${params.maxPrice})`);
-                  continue;
-                }
+          log(`Checking for new products with params:`, searchParams);
 
-                // Skip if product doesn't match marketplace
-                if (params.marketplace && params.marketplace !== 'all' && product.marketplace !== params.marketplace) {
-                  log(`Skipping product ${product.title} (marketplace ${product.marketplace} != ${params.marketplace})`);
-                  continue;
-                }
-
-                try {
-                  // Store product in database and associate with monitor
-                  await storage.addProductToMonitor(id, product);
-                  newProducts.push(product);
-                  log(`Found new product: ${product.title} for monitor ${monitorId}`);
-                } catch (error) {
-                  log(`Error storing product: ${error}`);
-                }
-              }
-            }
+          // Pass the monitor creation time to filter old products
+          const monitor = await storage.getMonitorById(parseInt(monitorId));
+          if (!monitor) {
+            log(`Monitor ${monitorId} not found`);
+            return;
           }
 
-          if (newProducts.length > 0) {
+          const products = await storage.searchProducts(searchParams, monitor.createdAt);
+          log(`Found ${products.length} products for monitor ${monitorId}`);
+
+          if (products.length > 0) {
             broadcastUpdate({
               type: 'new_monitored_products',
-              products: newProducts,
+              products: products,
               monitorId
             });
           }

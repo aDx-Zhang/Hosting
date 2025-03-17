@@ -5,46 +5,60 @@ import { log } from "./vite";
 import { db } from "./db";
 import { eq, and, desc, gte } from "drizzle-orm";
 
-export interface IStorage {
-  searchProducts(params: SearchParams, monitorCreatedAt?: Date): Promise<Product[]>;
-  getProduct(id: number): Promise<Product | undefined>;
-  createProduct(product: InsertProduct): Promise<Product>;
-  createMonitor(params: SearchParams, userId: number): Promise<{ id: number }>;
-  getActiveMonitors(userId: number): Promise<{ id: number; params: SearchParams; createdAt: Date }[]>;
-  getMonitorById(id: number): Promise<{ id: number; params: SearchParams; createdAt: Date } | undefined>;
-  deactivateMonitor(id: number): Promise<void>;
-  addProductToMonitor(monitorId: number, product: Product): Promise<void>;
-  getUserSubscriptionInfo(userId: number): Promise<{ expiresAt: Date; active: boolean } | null>;
-  addApiKey(key: string, userId: number, durationDays: number): Promise<void>;
-  getUserById(id: number): Promise<User | undefined>;
-}
+// Mock data for testing
+const mockProducts = {
+  'iphone': [
+    {
+      title: "iPhone 13 Pro 128GB",
+      description: "Perfect condition, all accessories included",
+      price: "3499.99",
+      image: "https://images.unsplash.com/photo-1592286927505-1def25115558",
+      marketplace: "allegro",
+      originalUrl: "https://allegro.pl/iphone13pro",
+    },
+    {
+      title: "iPhone 12 64GB",
+      description: "Used but in great condition",
+      price: "2499.99",
+      image: "https://images.unsplash.com/photo-1592286927505-1def25115558",
+      marketplace: "olx",
+      originalUrl: "https://olx.pl/iphone12",
+    }
+  ],
+  'samsung': [
+    {
+      title: "Samsung Galaxy S21",
+      description: "Brand new in box",
+      price: "2999.99",
+      image: "https://images.unsplash.com/photo-1610945264803-c22b62d2a7b3",
+      marketplace: "allegro",
+      originalUrl: "https://allegro.pl/samsung-s21",
+    }
+  ]
+};
 
 export class DatabaseStorage implements IStorage {
+  private async searchMarketplace(query: string, marketplace: string): Promise<Product[]> {
+    const normalizedQuery = query.toLowerCase();
+    // Get mock products that match the query
+    const matchingProducts = Object.entries(mockProducts).filter(([key]) => 
+      key.includes(normalizedQuery)
+    ).flatMap(([, products]) => products);
+
+    // Filter by marketplace if specified
+    return marketplace === 'all' 
+      ? matchingProducts 
+      : matchingProducts.filter(p => p.marketplace === marketplace);
+  }
+
   async searchProducts(params: SearchParams, monitorCreatedAt?: Date): Promise<Product[]> {
     try {
-      const query = params.query || '';
+      const query = params.query.toLowerCase();
       log(`Searching for products with query: ${query}`);
 
-      const results = await Promise.allSettled([
-        this.searchOLX(query),
-        this.searchAllegro(query),
-        this.searchVinted(query)
-      ]);
-
-      let allProducts: Product[] = [];
-
-      results.forEach((result) => {
-        if (result.status === 'fulfilled' && result.value.length > 0) {
-          const products = result.value.map(product => ({
-            ...product,
-            price: product.price.toString(),
-            foundAt: new Date()
-          }));
-          allProducts.push(...products);
-        }
-      });
-
-      log(`Total products found: ${allProducts.length}`);
+      // Get products from all marketplaces
+      const allProducts = await this.searchMarketplace(query, params.marketplace || 'all');
+      log(`Found ${allProducts.length} total products`);
 
       let filteredProducts = allProducts;
 
@@ -62,22 +76,19 @@ export class DatabaseStorage implements IStorage {
         });
       }
 
-      if (params.marketplace && params.marketplace !== 'all') {
-        filteredProducts = filteredProducts.filter(product =>
-          product.marketplace === params.marketplace
-        );
-      }
-
       const savedProducts: Product[] = [];
 
       // Store filtered products
       for (const product of filteredProducts) {
         try {
-          const savedProduct = await this.createProduct(product);
-          log(`Successfully saved product: ${savedProduct.id}`);
+          const savedProduct = await this.createProduct({
+            ...product,
+            foundAt: new Date()
+          });
+          log(`Saved product: ${savedProduct.id}`);
           savedProducts.push(savedProduct);
         } catch (error) {
-          log(`Error storing product: ${error}`);
+          log(`Error saving product: ${error}`);
         }
       }
 
@@ -308,6 +319,7 @@ export class DatabaseStorage implements IStorage {
       throw new Error('Failed to add API key');
     }
   }
+
   async getUserById(id: number): Promise<User | undefined> {
     const [user] = await db.select().from(users).where(eq(users.id, id));
     return user;
@@ -315,10 +327,3 @@ export class DatabaseStorage implements IStorage {
 }
 
 export const storage = new DatabaseStorage();
-
-//Missing marketplaceService -  needs to be added to make this code work.  Adding a placeholder for now.
-const marketplaceService = {
-  searchOLX: async (query: string) => { return []; },
-  searchAllegro: async (query: string) => { return []; },
-  searchVinted: async (query: string) => { return []; }
-};
