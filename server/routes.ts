@@ -15,13 +15,23 @@ function heartbeat(this: WebSocket & { isAlive?: boolean }) {
 let wss: WebSocketServer;
 
 export function broadcastUpdate(data: unknown) {
-  if (!wss) return;
+  if (!wss) {
+    log('WebSocket server not initialized');
+    return;
+  }
+
   const message = JSON.stringify(data);
+  log(`Broadcasting message: ${message}`);
+
+  let clientCount = 0;
   wss.clients.forEach(client => {
     if (client.readyState === WebSocket.OPEN) {
       client.send(message);
+      clientCount++;
     }
   });
+
+  log(`Message broadcasted to ${clientCount} clients`);
 }
 
 export async function registerRoutes(app: Express) {
@@ -33,6 +43,7 @@ export async function registerRoutes(app: Express) {
         return res.status(401).json({ error: "Not authenticated" });
       }
       const monitors = await storage.getActiveMonitors(req.session.userId);
+      log(`Retrieved ${monitors.length} active monitors for user ${req.session.userId}`);
       res.json(monitors);
     } catch (error) {
       log(`Error getting monitors: ${error}`);
@@ -58,7 +69,11 @@ export async function registerRoutes(app: Express) {
       }
 
       const params = searchParamsSchema.parse(req.body);
+      log(`Starting monitor for user ${req.session.userId} with params:`, params);
+
       const result = await monitoringService.startMonitoring(params, req.session.userId);
+      log(`Monitor started successfully with ID: ${result.id}`);
+
       res.json(result);
     } catch (error) {
       log(`Monitor start error: ${error}`);
@@ -79,11 +94,12 @@ export async function registerRoutes(app: Express) {
 
   const httpServer = createServer(app);
 
-  // Basic WebSocket server configuration
   wss = new WebSocketServer({
     server: httpServer,
     path: '/ws'
   });
+
+  log('WebSocket server initialized');
 
   const interval = setInterval(() => {
     wss.clients.forEach((ws: WebSocket & { isAlive?: boolean }) => {

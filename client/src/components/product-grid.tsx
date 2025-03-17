@@ -31,33 +31,40 @@ export function ProductGrid({
   const { toast } = useToast();
   const seenProducts = useRef(new Set<string>());
 
-  // Reset products when initialProducts changes
   useEffect(() => {
+    console.log('Initial products received:', initialProducts);
     setProducts(initialProducts);
-    // Reset seen products
     seenProducts.current = new Set(
       initialProducts.map(p => `${p.originalUrl}-${p.marketplace}`)
     );
   }, [initialProducts]);
 
-  const isProductUnique = (product: Product) => {
+  const isProductUnique = useCallback((product: Product) => {
     const key = `${product.originalUrl}-${product.marketplace}`;
     if (seenProducts.current.has(key)) {
+      console.log('Duplicate product found:', key);
       return false;
     }
+    console.log('New unique product:', key);
     seenProducts.current.add(key);
     return true;
-  };
+  }, []);
 
   const handleRealTimeUpdate = useCallback((data: unknown) => {
+    console.log('Received WebSocket update:', data);
+
     if (typeof data === 'object' && data !== null && 'type' in data) {
       switch (data.type) {
         case 'new_monitored_products': {
           const update = data as { type: string; products: Product[]; monitorId: string };
+          console.log('Received new products update:', update);
+
           if (monitorId && update.monitorId === monitorId) {
-            // Filter out duplicates
+            console.log('Update matches current monitor');
             const uniqueProducts = update.products.filter(isProductUnique);
+
             if (uniqueProducts.length > 0) {
+              console.log('Adding new unique products:', uniqueProducts);
               setProducts(prev => [...uniqueProducts, ...prev]);
               onNewProducts?.(uniqueProducts);
               toast({
@@ -70,11 +77,13 @@ export function ProductGrid({
         }
       }
     }
-  }, [toast, monitorId, onNewProducts]);
+  }, [toast, monitorId, onNewProducts, isProductUnique]);
 
   const { isConnected, isConnecting } = useWebSocket({ 
     onMessage: isMonitoring ? handleRealTimeUpdate : undefined 
   });
+
+  console.log('WebSocket status:', { isConnected, isConnecting });
 
   if (isMonitoring) {
     return (
@@ -113,6 +122,8 @@ export function ProductGrid({
         </div>
       );
     }
+
+    console.log('Rendering products:', products);
 
     return (
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">

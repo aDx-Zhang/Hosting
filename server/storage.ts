@@ -26,21 +26,19 @@ export class DatabaseStorage implements IStorage {
       log(`Searching for products with query: ${query}`);
 
       const results = await Promise.allSettled([
-        marketplaceService.searchOLX(query),
-        marketplaceService.searchAllegro(query),
-        marketplaceService.searchVinted(query)
+        this.searchOLX(query),
+        this.searchAllegro(query),
+        this.searchVinted(query)
       ]);
 
       let allProducts: Product[] = [];
 
       results.forEach((result) => {
         if (result.status === 'fulfilled' && result.value.length > 0) {
-          // Set foundAt to current time for each new product
-          const foundAt = new Date();
           const products = result.value.map(product => ({
             ...product,
             price: product.price.toString(),
-            foundAt // Add foundAt timestamp for each product
+            foundAt: new Date()
           }));
           allProducts.push(...products);
         }
@@ -70,22 +68,33 @@ export class DatabaseStorage implements IStorage {
         );
       }
 
-      // Store filtered products and return the ones found after monitor creation
+      const savedProducts: Product[] = [];
+
+      // Store filtered products
       for (const product of filteredProducts) {
         try {
-          const createdProduct = await this.createProduct(product);
-          log(`Created product: ${createdProduct.id}`);
-
-          // If this is for a monitor, add it to the monitor immediately
-          if (monitorCreatedAt) {
-            await this.addProductToMonitor(parseInt(params.monitorId!), createdProduct);
-          }
+          const savedProduct = await this.createProduct(product);
+          log(`Successfully saved product: ${savedProduct.id}`);
+          savedProducts.push(savedProduct);
         } catch (error) {
           log(`Error storing product: ${error}`);
         }
       }
 
-      return filteredProducts;
+      // If this is a monitor search, add products to monitor
+      if (monitorCreatedAt && params.monitorId) {
+        log(`Adding ${savedProducts.length} products to monitor ${params.monitorId}`);
+
+        for (const product of savedProducts) {
+          try {
+            await this.addProductToMonitor(parseInt(params.monitorId), product);
+          } catch (error) {
+            log(`Error adding product ${product.id} to monitor: ${error}`);
+          }
+        }
+      }
+
+      return savedProducts;
     } catch (error) {
       log(`Error searching products: ${error}`);
       return [];
@@ -171,17 +180,17 @@ export class DatabaseStorage implements IStorage {
 
   async addProductToMonitor(monitorId: number, product: Product): Promise<void> {
     try {
-      // Get monitor's creation time to filter old products
+      log(`Starting to add product ${product.id} to monitor ${monitorId}`);
+
+      // Check if monitor exists
       const monitor = await this.getMonitorById(monitorId);
       if (!monitor) {
         log(`Monitor ${monitorId} not found`);
         return;
       }
 
-      log(`Adding product ${product.id} to monitor ${monitorId}`);
-
-      // Check if this product is already linked to this monitor
-      const [existingMonitorProduct] = await db.select()
+      // Check if product is already linked
+      const [existingLink] = await db.select()
         .from(monitorProducts)
         .where(
           and(
@@ -190,28 +199,31 @@ export class DatabaseStorage implements IStorage {
           )
         );
 
-      // Only add to monitor and broadcast if it's a new product for this monitor
-      if (!existingMonitorProduct) {
-        await db.insert(monitorProducts)
-          .values({
-            monitorId,
-            productId: product.id,
-            createdAt: new Date()
-          });
-
-        log(`Successfully linked product ${product.id} to monitor ${monitorId}`);
-
-        // Broadcast the new product
-        broadcastUpdate({
-          type: 'new_monitored_products',
-          products: [product],
-          monitorId: monitorId.toString()
-        });
-      } else {
+      if (existingLink) {
         log(`Product ${product.id} already linked to monitor ${monitorId}`);
+        return;
       }
+
+      // Add the link
+      await db.insert(monitorProducts)
+        .values({
+          monitorId,
+          productId: product.id,
+          createdAt: new Date()
+        });
+
+      log(`Successfully linked product ${product.id} to monitor ${monitorId}`);
+
+      // Broadcast the update
+      broadcastUpdate({
+        type: 'new_monitored_products',
+        products: [product],
+        monitorId: monitorId.toString()
+      });
+
+      log(`Broadcasted new product for monitor ${monitorId}`);
     } catch (error) {
-      log(`Error adding product to monitor: ${error}`);
+      log(`Error in addProductToMonitor: ${error}`);
       throw error;
     }
   }
@@ -303,3 +315,10 @@ export class DatabaseStorage implements IStorage {
 }
 
 export const storage = new DatabaseStorage();
+
+//Missing marketplaceService -  needs to be added to make this code work.  Adding a placeholder for now.
+const marketplaceService = {
+  searchOLX: async (query: string) => { return []; },
+  searchAllegro: async (query: string) => { return []; },
+  searchVinted: async (query: string) => { return []; }
+};
