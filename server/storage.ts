@@ -3,7 +3,7 @@ import { products, monitors, monitorProducts, apiKeys } from "@shared/schema";
 import { broadcastUpdate } from "./routes";
 import { log } from "./vite";
 import { db } from "./db";
-import { eq, and, desc, gte, gt } from "drizzle-orm";
+import { eq, and, desc, gte } from "drizzle-orm";
 import { marketplaceService } from "./services/marketplaces";
 
 export interface IStorage {
@@ -215,7 +215,8 @@ export class DatabaseStorage implements IStorage {
           gte(apiKeys.expiresAt, new Date())
         )
       )
-      .orderBy(desc(apiKeys.expiresAt));
+      .orderBy(desc(apiKeys.expiresAt))
+      .limit(1);
 
     if (!activeKey?.expiresAt) return null;
 
@@ -229,65 +230,79 @@ export class DatabaseStorage implements IStorage {
     const now = new Date();
     const millisecondsPerDay = 24 * 60 * 60 * 1000;
 
-    log(`Adding API key for user ${userId} with duration ${durationDays} days`);
+    log(`Starting addApiKey process for user ${userId} with ${durationDays} days duration`);
 
-    // Find existing active key
-    const [existingKey] = await db.select()
-      .from(apiKeys)
-      .where(
-        and(
-          eq(apiKeys.userId, userId),
-          eq(apiKeys.active, 1),
-          gte(apiKeys.expiresAt, now)
-        )
+    try {
+      // Step 1: First deactivate all currently active keys for this user
+      const deactivateResult = await db.execute(
+        `UPDATE api_keys SET active = 0 WHERE user_id = $1 AND active = 1 RETURNING id`,
+        [userId]
       );
 
-    if (existingKey) {
-      log(`Found existing key: ID=${existingKey.id}, current expiry=${existingKey.expiresAt.toISOString()}`);
+      const deactivatedCount = deactivateResult.rows?.length || 0;
+      log(`Deactivated ${deactivatedCount} existing keys`);
 
-      // Calculate duration in milliseconds
-      const additionalMs = durationDays * millisecondsPerDay;
-
-      // Calculate new expiry by adding milliseconds to existing expiry
-      const newExpiryDate = new Date(existingKey.expiresAt.getTime() + additionalMs);
-
-      log(`Current expiry timestamp: ${existingKey.expiresAt.getTime()}`);
-      log(`Additional milliseconds: ${additionalMs}`);
-      log(`New expiry timestamp: ${newExpiryDate.getTime()}`);
-      log(`New expiry date: ${newExpiryDate.toISOString()}`);
-
-      await db.update(apiKeys)
-        .set({
-          expiresAt: newExpiryDate,
-          durationDays: existingKey.durationDays + durationDays
-        })
-        .where(eq(apiKeys.id, existingKey.id));
-
-      // Verify the update
-      const [updatedKey] = await db.select()
+      // Step 2: Find the latest expiring key to calculate total duration
+      const [latestKey] = await db.select()
         .from(apiKeys)
-        .where(eq(apiKeys.id, existingKey.id));
+        .where(
+          and(
+            eq(apiKeys.userId, userId),
+            gte(apiKeys.expiresAt, now)
+          )
+        )
+        .orderBy(desc(apiKeys.expiresAt))
+        .limit(1);
 
-      log(`Updated key expiry to: ${updatedKey.expiresAt.toISOString()}`);
-      log(`Total duration is now: ${updatedKey.durationDays} days`);
+      // Calculate total duration and expiry date
+      let totalDays = durationDays;
+      let expiryDate = new Date(now.getTime() + (durationDays * millisecondsPerDay));
 
-    } else {
-      log(`No existing active key found, creating new one`);
+      if (latestKey) {
+        // Calculate remaining time from latest key
+        const remainingMs = latestKey.expiresAt.getTime() - now.getTime();
+        const remainingDays = Math.ceil(remainingMs / millisecondsPerDay);
+        totalDays = remainingDays + durationDays;
 
-      const durationMs = durationDays * millisecondsPerDay;
-      const expiryDate = new Date(now.getTime() + durationMs);
+        // Add new duration to latest key's expiry
+        expiryDate = new Date(latestKey.expiresAt.getTime() + (durationDays * millisecondsPerDay));
 
-      log(`Setting initial expiry to: ${expiryDate.toISOString()}`);
+        log(`Found latest key with expiry: ${latestKey.expiresAt.toISOString()}`);
+        log(`Current remaining days: ${remainingDays}`);
+        log(`Adding ${durationDays} days for total of ${totalDays} days`);
+      }
 
-      await db.insert(apiKeys)
+      log(`Setting expiry to: ${expiryDate.toISOString()}`);
+
+      // Step 3: Create new key with total duration
+      const [newKey] = await db.insert(apiKeys)
         .values({
           key,
           userId,
           expiresAt: expiryDate,
           active: 1,
-          durationDays,
+          durationDays: totalDays,
           createdAt: now
-        });
+        })
+        .returning();
+
+      log(`Created new key ${newKey.id} with ${totalDays} days duration`);
+
+      // Step 4: Verify the results
+      const verification = await db.execute(
+        `SELECT COUNT(*) as active_count FROM api_keys WHERE user_id = $1 AND active = 1`,
+        [userId]
+      );
+
+      const activeCount = parseInt(verification.rows?.[0]?.active_count || '0');
+      if (activeCount !== 1) {
+        throw new Error(`Verification failed: Found ${activeCount} active keys instead of 1`);
+      }
+
+      log(`Successfully created new key with ${totalDays} days duration`);
+    } catch (error) {
+      log(`Error in addApiKey: ${error}`);
+      throw error;
     }
   }
 }
