@@ -3,7 +3,7 @@ import { WebSocketServer, WebSocket } from "ws";
 import { createServer } from "http";
 import type { Express } from "express";
 import { storage } from "./storage";
-import { searchParamsSchema } from "@shared/schema";
+import { searchParamsSchema, insertProductSchema } from "@shared/schema";
 import { log } from "./vite";
 import { monitoringService } from "./services/monitor";
 import { authRouter } from "./routes/auth";
@@ -48,6 +48,40 @@ export async function registerRoutes(app: Express) {
     } catch (error) {
       log(`Search validation error: ${error}`);
       res.status(400).json({ error: "Invalid search parameters" });
+    }
+  });
+
+  // New endpoint for creating test products
+  app.post("/api/products/test", async (req, res) => {
+    try {
+      if (!req.session.userId) {
+        return res.status(401).json({ error: "Not authenticated" });
+      }
+
+      const user = await storage.getUserById(req.session.userId);
+      if (!user || user.role !== 'admin') {
+        return res.status(403).json({ error: "Not authorized" });
+      }
+
+      const product = insertProductSchema.parse(req.body);
+      const createdProduct = await storage.createProduct(product);
+
+      // Get all active monitors to broadcast the new product
+      const monitors = await storage.getActiveMonitors(req.session.userId);
+
+      // Broadcast to each monitor separately
+      for (const monitor of monitors) {
+        broadcastUpdate({
+          type: 'new_monitored_products',
+          products: [createdProduct],
+          monitorId: monitor.id.toString()
+        });
+      }
+
+      res.json(createdProduct);
+    } catch (error) {
+      log(`Error creating test product: ${error}`);
+      res.status(400).json({ error: "Failed to create test product" });
     }
   });
 

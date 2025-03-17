@@ -1,12 +1,13 @@
 import { useAuth } from "@/hooks/use-auth";
 import { useQuery, useMutation } from "@tanstack/react-query";
-import { Loader2, Trash2, Eye, EyeOff, LogOut } from "lucide-react";
+import { Loader2, Trash2, Eye, EyeOff, LogOut, Plus } from "lucide-react";
 import { Redirect } from "wouter";
 import {
   Card,
   CardContent,
   CardHeader,
   CardTitle,
+  CardDescription,
 } from "@/components/ui/card";
 import {
   AlertDialog,
@@ -27,10 +28,13 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Textarea } from "@/components/ui/textarea";
 import { useToast } from "@/hooks/use-toast";
-import type { User, ApiKey } from "@shared/schema";
+import type { User, ApiKey, InsertProduct } from "@shared/schema";
 import { useState } from "react";
 import { queryClient } from "@/lib/queryClient";
+import { apiRequest } from "@/lib/queryClient";
 
 export default function AdminPanel() {
   const { user } = useAuth();
@@ -386,6 +390,114 @@ export default function AdminPanel() {
                 </tbody>
               </table>
             </div>
+          </CardContent>
+        </Card>
+      </div>
+
+      <div className="mt-8">
+        <Card>
+          <CardHeader>
+            <CardTitle>Add Test Product</CardTitle>
+            <CardDescription>
+              Add a test product to see how it appears in the monitoring view
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            <form className="space-y-4" onSubmit={async (e) => {
+              e.preventDefault();
+              const formData = new FormData(e.currentTarget);
+              const product: InsertProduct = {
+                title: formData.get('title') as string,
+                description: formData.get('description') as string,
+                price: formData.get('price') as string,
+                image: formData.get('image') as string,
+                marketplace: formData.get('marketplace') as string,
+                originalUrl: formData.get('originalUrl') as string,
+                foundAt: new Date()
+              };
+
+              try {
+                await apiRequest("POST", "/api/products/test", product);
+                toast({
+                  title: "Success",
+                  description: "Test product added successfully",
+                });
+                // Refresh the monitors to show the new product
+                queryClient.invalidateQueries({ queryKey: ['/api/monitors'] });
+              } catch (error) {
+                toast({
+                  title: "Error",
+                  description: "Failed to add test product",
+                  variant: "destructive",
+                });
+              }
+            }}>
+              <div className="grid grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <label className="text-sm font-medium">Title</label>
+                  <Input
+                    name="title"
+                    placeholder="Product title"
+                    defaultValue="iPhone 13 Pro Max - Like New"
+                  />
+                </div>
+                <div className="space-y-2">
+                  <label className="text-sm font-medium">Price (PLN)</label>
+                  <Input
+                    name="price"
+                    placeholder="999.99"
+                    defaultValue="999.99"
+                  />
+                </div>
+              </div>
+
+              <div className="space-y-2">
+                <label className="text-sm font-medium">Description</label>
+                <Textarea
+                  name="description"
+                  placeholder="Product description"
+                  defaultValue="iPhone 13 Pro Max 256GB in perfect condition, includes original accessories and box."
+                />
+              </div>
+
+              <div className="grid grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <label className="text-sm font-medium">Image URL</label>
+                  <Input
+                    name="image"
+                    placeholder="https://example.com/image.jpg"
+                    defaultValue="https://images.unsplash.com/photo-1592286927505-1def25115558"
+                  />
+                </div>
+                <div className="space-y-2">
+                  <label className="text-sm font-medium">Original URL</label>
+                  <Input
+                    name="originalUrl"
+                    placeholder="https://marketplace.com/product"
+                    defaultValue="https://allegro.pl/iphone-13"
+                  />
+                </div>
+              </div>
+
+              <div className="space-y-2">
+                <label className="text-sm font-medium">Marketplace</label>
+                <Select name="marketplace" defaultValue="allegro">
+                  <SelectTrigger>
+                    <SelectValue placeholder="Select marketplace" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="allegro">Allegro</SelectItem>
+                    <SelectItem value="olx">OLX</SelectItem>
+                    <SelectItem value="vinted">Vinted</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+
+              <Button type="submit" className="w-full mt-4">
+                <Plus className="w-4 h-4 mr-2" />
+                Add Test Product
+              </Button>
+            </form>
           </CardContent>
         </Card>
       </div>
