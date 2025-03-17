@@ -241,24 +241,25 @@ export class DatabaseStorage implements IStorage {
       .orderBy(desc(apiKeys.expiresAt));
 
     if (existingKey) {
-      // Calculate remaining days from existing key
-      const remainingDays = Math.ceil((existingKey.expiresAt.getTime() - now.getTime()) / (1000 * 60 * 60 * 24));
+      // Calculate remaining milliseconds from existing key
+      const remainingMs = existingKey.expiresAt.getTime() - now.getTime();
+      const remainingDays = Math.ceil(remainingMs / (1000 * 60 * 60 * 24));
 
-      // Add new duration to remaining days
+      // Add new duration days to the existing expiration date
       const totalDays = remainingDays + durationDays;
-      const newExpiryDate = new Date(now);
-      newExpiryDate.setDate(newExpiryDate.getDate() + totalDays);
+      const newExpiryDate = new Date(existingKey.expiresAt);
+      newExpiryDate.setDate(newExpiryDate.getDate() + durationDays);
 
       await db.update(apiKeys)
         .set({
           expiresAt: newExpiryDate,
-          durationDays: totalDays // Update total duration
+          durationDays: totalDays // Store total duration
         })
         .where(eq(apiKeys.id, existingKey.id));
 
-      log(`Extended API key expiration to ${newExpiryDate} (${totalDays} days total)`);
+      log(`Extended API key expiration to ${newExpiryDate.toISOString()} (${totalDays} days total)`);
     } else {
-      // Create new key with durationDays period
+      // Create new key
       const expiryDate = new Date(now);
       expiryDate.setDate(expiryDate.getDate() + durationDays);
 
@@ -272,7 +273,7 @@ export class DatabaseStorage implements IStorage {
           createdAt: now
         });
 
-      log(`Created new API key expiring on ${expiryDate}`);
+      log(`Created new API key expiring on ${expiryDate.toISOString()}`);
     }
   }
 }
