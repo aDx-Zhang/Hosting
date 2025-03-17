@@ -7,7 +7,7 @@ import { eq, and, desc, gte, gt } from "drizzle-orm";
 import { marketplaceService } from "./services/marketplaces";
 
 export interface IStorage {
-  searchProducts(params: SearchParams): Promise<Product[]>;
+  searchProducts(params: SearchParams, monitorCreatedAt?: Date): Promise<Product[]>;
   getProduct(id: number): Promise<Product | undefined>;
   createProduct(product: InsertProduct): Promise<Product>;
   createMonitor(params: SearchParams, userId: number): Promise<{ id: number }>;
@@ -19,7 +19,7 @@ export interface IStorage {
 }
 
 export class DatabaseStorage implements IStorage {
-  async searchProducts(params: SearchParams): Promise<Product[]> {
+  async searchProducts(params: SearchParams, monitorCreatedAt?: Date): Promise<Product[]> {
     try {
       const query = params.query || '';
       log(`Searching for products with query: ${query}`);
@@ -71,19 +71,37 @@ export class DatabaseStorage implements IStorage {
 
       // Store filtered products in database with current timestamp
       const now = new Date();
-      for (const product of filteredProducts) {
-        try {
-          await this.createProduct({
-            ...product,
-            foundAt: now
-          });
-        } catch (error) {
-          log(`Error storing product: ${error}`);
-        }
-      }
 
-      log(`Found ${filteredProducts.length} products after applying filters`);
-      return filteredProducts;
+      // Only store and return products found after monitor creation
+      if (monitorCreatedAt) {
+        log(`Filtering products found after monitor creation: ${monitorCreatedAt}`);
+        // Store products but only return the new ones
+        for (const product of filteredProducts) {
+          try {
+            await this.createProduct({
+              ...product,
+              foundAt: now
+            });
+          } catch (error) {
+            log(`Error storing product: ${error}`);
+          }
+        }
+        // Return only products found after monitor creation
+        return filteredProducts.filter(product => new Date(product.foundAt) > monitorCreatedAt);
+      } else {
+        // If no monitor creation time provided, store and return all products
+        for (const product of filteredProducts) {
+          try {
+            await this.createProduct({
+              ...product,
+              foundAt: now
+            });
+          } catch (error) {
+            log(`Error storing product: ${error}`);
+          }
+        }
+        return filteredProducts;
+      }
     } catch (error) {
       log(`Error searching products: ${error}`);
       return [];

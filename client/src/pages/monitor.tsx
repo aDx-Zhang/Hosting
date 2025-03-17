@@ -63,12 +63,13 @@ export default function Monitor() {
         const res = await apiRequest("GET", "/api/monitors");
         const data = await res.json();
         console.log("Loaded monitors:", data);
+        // Initialize monitors with empty product arrays
         setMonitors(data.map((monitor: any) => ({
           id: monitor.id.toString(),
           params: typeof monitor.params === 'string'
             ? JSON.parse(monitor.params)
             : monitor.params,
-          products: [] // Start with empty products array for new monitors
+          products: [] // Always start with empty products array
         })));
       } catch (error) {
         console.error('Failed to load monitors:', error);
@@ -84,6 +85,7 @@ export default function Monitor() {
       const res = await apiRequest("POST", "/api/monitor/start", searchParams);
       const data = await res.json();
 
+      // Add new monitor with empty products array
       setMonitors(prev => [...prev, {
         id: data.monitorId,
         params: searchParams,
@@ -104,6 +106,15 @@ export default function Monitor() {
         variant: "destructive",
       });
     }
+  };
+
+  const updateMonitorProducts = (monitorId: string, newProducts: Product[]) => {
+    console.log("Updating products for monitor", monitorId, "with", newProducts);
+    setMonitors(prev => prev.map(monitor =>
+      monitor.id === monitorId
+        ? { ...monitor, products: [...newProducts, ...monitor.products] }
+        : monitor
+    ));
   };
 
   const stopMonitor = async (monitorId: string) => {
@@ -127,14 +138,6 @@ export default function Monitor() {
     }
   };
 
-  const updateMonitorProducts = (monitorId: string, newProducts: Product[]) => {
-    console.log("Updating products for monitor", monitorId, "with", newProducts);
-    setMonitors(prev => prev.map(monitor =>
-      monitor.id === monitorId
-        ? { ...monitor, products: [...newProducts, ...monitor.products] }
-        : monitor
-    ));
-  };
 
   return (
     <div className="min-h-screen bg-[#1a1428]">
@@ -176,11 +179,6 @@ export default function Monitor() {
                             <p className="text-sm text-gray-400">
                               {formatUpdateFrequency(monitor.params.updateFrequency)}
                             </p>
-                            {(monitor.params.minPrice !== undefined || monitor.params.maxPrice !== undefined) && (
-                              <p className="text-sm text-gray-400">
-                                Price range: {monitor.params.minPrice || 0} - {monitor.params.maxPrice || '∞'} PLN
-                              </p>
-                            )}
                           </div>
                           <Button
                             variant="ghost"
