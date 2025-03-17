@@ -230,10 +230,33 @@ export class DatabaseStorage implements IStorage {
     const now = new Date();
 
     try {
-      // Calculate expiry date from now
-      const expiryDate = new Date(now.getTime() + (durationDays * millisecondsPerDay));
+      // First check if this is a valid key
+      const [keyToActivate] = await db.select()
+        .from(apiKeys)
+        .where(eq(apiKeys.key, key))
+        .limit(1);
 
-      // Update the key with user_id and expiry date using drizzle's update
+      if (!keyToActivate) {
+        throw new Error('Invalid API key');
+      }
+
+      // Find latest expiry date from any active key for this user
+      const [latestKey] = await db.select()
+        .from(apiKeys)
+        .where(eq(apiKeys.userId, userId))
+        .orderBy(desc(apiKeys.expiresAt))
+        .limit(1);
+
+      // Calculate new expiry date from latest expiry or now
+      const startDate = latestKey?.expiresAt || now;
+      const expiryDate = new Date(startDate.getTime() + (durationDays * millisecondsPerDay));
+
+      log(`Adding API key for user ${userId}`);
+      log(`Duration: ${durationDays} days`);
+      log(`Start date: ${startDate.toISOString()}`);
+      log(`New expiry: ${expiryDate.toISOString()}`);
+
+      // Activate this key and set the new expiry date
       await db.update(apiKeys)
         .set({
           userId,
@@ -243,7 +266,7 @@ export class DatabaseStorage implements IStorage {
         })
         .where(eq(apiKeys.key, key));
 
-      log(`Assigned API key to user ${userId} with expiry at ${expiryDate.toISOString()}`);
+      log(`Successfully activated key and set expiry to ${expiryDate.toISOString()}`);
     } catch (error) {
       log(`Error in addApiKey: ${error}`);
       throw new Error('Failed to add API key');
