@@ -229,6 +229,8 @@ export class DatabaseStorage implements IStorage {
     const now = new Date();
     const millisecondsPerDay = 24 * 60 * 60 * 1000;
 
+    log(`Adding API key for user ${userId} with duration ${durationDays} days`);
+
     // Find existing active key
     const [existingKey] = await db.select()
       .from(apiKeys)
@@ -238,20 +240,20 @@ export class DatabaseStorage implements IStorage {
           eq(apiKeys.active, 1),
           gte(apiKeys.expiresAt, now)
         )
-      )
-      .orderBy(desc(apiKeys.expiresAt));
+      );
 
     if (existingKey) {
-      // Convert duration days to milliseconds
-      const durationMs = durationDays * millisecondsPerDay;
+      log(`Found existing key: ID=${existingKey.id}, current expiry=${existingKey.expiresAt.toISOString()}`);
+
+      // Calculate duration in milliseconds
+      const additionalMs = durationDays * millisecondsPerDay;
 
       // Calculate new expiry by adding milliseconds to existing expiry
-      const newExpiryTimestamp = existingKey.expiresAt.getTime() + durationMs;
-      const newExpiryDate = new Date(newExpiryTimestamp);
+      const newExpiryDate = new Date(existingKey.expiresAt.getTime() + additionalMs);
 
-      log(`Current key expiry: ${existingKey.expiresAt.toISOString()}`);
-      log(`Adding duration: ${durationDays} days (${durationMs}ms)`);
-      log(`New expiry timestamp: ${newExpiryTimestamp}`);
+      log(`Current expiry timestamp: ${existingKey.expiresAt.getTime()}`);
+      log(`Additional milliseconds: ${additionalMs}`);
+      log(`New expiry timestamp: ${newExpiryDate.getTime()}`);
       log(`New expiry date: ${newExpiryDate.toISOString()}`);
 
       await db.update(apiKeys)
@@ -261,11 +263,21 @@ export class DatabaseStorage implements IStorage {
         })
         .where(eq(apiKeys.id, existingKey.id));
 
-      log(`Successfully extended key - new total duration: ${existingKey.durationDays + durationDays} days`);
+      // Verify the update
+      const [updatedKey] = await db.select()
+        .from(apiKeys)
+        .where(eq(apiKeys.id, existingKey.id));
+
+      log(`Updated key expiry to: ${updatedKey.expiresAt.toISOString()}`);
+      log(`Total duration is now: ${updatedKey.durationDays} days`);
+
     } else {
-      // For new keys, calculate expiry from now
+      log(`No existing active key found, creating new one`);
+
       const durationMs = durationDays * millisecondsPerDay;
       const expiryDate = new Date(now.getTime() + durationMs);
+
+      log(`Setting initial expiry to: ${expiryDate.toISOString()}`);
 
       await db.insert(apiKeys)
         .values({
@@ -276,8 +288,6 @@ export class DatabaseStorage implements IStorage {
           durationDays,
           createdAt: now
         });
-
-      log(`Created new key - expires: ${expiryDate.toISOString()}, duration: ${durationDays} days`);
     }
   }
 }

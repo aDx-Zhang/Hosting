@@ -45,7 +45,7 @@ export const apiKeys = pgTable("api_keys", {
   id: serial("id").primaryKey(),
   key: text("key").notNull().unique(),
   userId: integer("user_id"),
-  expiresAt: timestamp("expires_at"),
+  expiresAt: timestamp("expires_at").notNull(),
   createdAt: timestamp("created_at").defaultNow().notNull(),
   active: integer("active").default(1),
   durationDays: integer("duration_days").notNull(),
