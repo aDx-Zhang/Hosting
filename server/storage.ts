@@ -16,6 +16,7 @@ export interface IStorage {
   deactivateMonitor(id: number): Promise<void>;
   addProductToMonitor(monitorId: number, product: Product): Promise<void>;
   getUserSubscriptionInfo(userId: number): Promise<{ expiresAt: Date; active: boolean } | null>;
+  addApiKey(key: string, userId: number, durationDays: number): Promise<void>;
 }
 
 export class DatabaseStorage implements IStorage {
@@ -222,6 +223,53 @@ export class DatabaseStorage implements IStorage {
       expiresAt: activeKey.expiresAt,
       active: true
     };
+  }
+
+  async addApiKey(key: string, userId: number, durationDays: number): Promise<void> {
+    const now = new Date();
+
+    // Find existing active key
+    const [existingKey] = await db.select()
+      .from(apiKeys)
+      .where(
+        and(
+          eq(apiKeys.userId, userId),
+          eq(apiKeys.active, 1),
+          gte(apiKeys.expiresAt, now)
+        )
+      )
+      .orderBy(desc(apiKeys.expiresAt));
+
+    if (existingKey) {
+      // Extend existing key's expiration by durationDays
+      const newExpiryDate = new Date(existingKey.expiresAt);
+      newExpiryDate.setDate(newExpiryDate.getDate() + durationDays);
+
+      await db.update(apiKeys)
+        .set({
+          expiresAt: newExpiryDate,
+          durationDays: existingKey.durationDays + durationDays
+        })
+        .where(eq(apiKeys.id, existingKey.id));
+
+      log(`Extended API key expiration to ${newExpiryDate}`);
+    } else {
+      // Create new key with durationDays period
+      const expiryDate = new Date(now);
+      expiryDate.setDate(expiryDate.getDate() + durationDays);
+
+      await db.insert(apiKeys)
+        .values({
+          key,
+          userId,
+          expiresAt: expiryDate,
+          active: 1,
+          durationDays,
+          createdAt: now
+        });
+
+      log(`Created new API key expiring on ${expiryDate}`);
+    }
   }
 }
 
