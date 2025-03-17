@@ -64,7 +64,7 @@ export class DatabaseStorage implements IStorage {
       }
 
       if (params.marketplace && params.marketplace !== 'all') {
-        filteredProducts = filteredProducts.filter(product => 
+        filteredProducts = filteredProducts.filter(product =>
           product.marketplace === params.marketplace
         );
       }
@@ -122,7 +122,7 @@ export class DatabaseStorage implements IStorage {
   }
 
   async getActiveMonitors(userId: number): Promise<{ id: number; params: SearchParams; createdAt: Date }[]> {
-    return await db.select({
+    const activeMonitors = await db.select({
       id: monitors.id,
       params: monitors.params,
       createdAt: monitors.createdAt
@@ -134,6 +134,8 @@ export class DatabaseStorage implements IStorage {
         eq(monitors.userId, userId)
       )
     );
+
+    return activeMonitors;
   }
 
   async getMonitorById(id: number): Promise<{ id: number; params: SearchParams; createdAt: Date } | undefined> {
@@ -165,18 +167,14 @@ export class DatabaseStorage implements IStorage {
       .where(
         and(
           eq(products.originalUrl, product.originalUrl),
-          eq(products.marketplace, product.marketplace)
+          eq(products.marketplace, product.marketplace),
+          gt(products.foundAt, monitor.createdAt) // Only consider products found after monitor creation
         )
       );
 
     let productId: number;
 
     if (existingProduct) {
-      // Skip products found before the monitor was created
-      if (existingProduct.foundAt <= monitor.createdAt) {
-        log(`Skipping old product found before monitor creation: ${product.title}`);
-        return;
-      }
       productId = existingProduct.id;
     } else {
       // This is a new product, add it to the database
