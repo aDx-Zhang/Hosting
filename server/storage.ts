@@ -232,48 +232,36 @@ export class DatabaseStorage implements IStorage {
     log(`Starting addApiKey process for user ${userId} with ${durationDays} days duration`);
 
     try {
-      // Find latest active key with remaining time
+      // Find latest active key to extend if it exists
       const [latestKey] = await db.select()
         .from(apiKeys)
         .where(
           and(
             eq(apiKeys.userId, userId),
-            eq(apiKeys.active, 1),
-            gte(apiKeys.expiresAt, now)
+            eq(apiKeys.active, 1)
           )
         )
         .orderBy(desc(apiKeys.expiresAt))
         .limit(1);
 
-      // Calculate total duration and expiry date
-      let totalDays = durationDays;
       let expiryDate = new Date(now.getTime() + (durationDays * millisecondsPerDay));
 
       if (latestKey) {
-        // Calculate remaining time from latest key
-        const remainingMs = latestKey.expiresAt.getTime() - now.getTime();
-        const remainingDays = Math.ceil(remainingMs / millisecondsPerDay);
-
-        // Add new duration to the existing expiry date
+        // If we have an active key, extend from its expiry date
         expiryDate = new Date(latestKey.expiresAt.getTime() + (durationDays * millisecondsPerDay));
-        totalDays = remainingDays + durationDays;
-
-        log(`Found active key expiring at: ${latestKey.expiresAt.toISOString()}`);
-        log(`Remaining days: ${remainingDays}`);
-        log(`Adding ${durationDays} more days`);
-        log(`Total duration will be: ${totalDays} days`);
-      } else {
-        log(`No active keys found, creating new key with ${durationDays} days duration`);
+        log(`Found active key expiring at ${latestKey.expiresAt.toISOString()}`);
+        log(`Extending duration by ${durationDays} days`);
+        log(`New expiry will be ${expiryDate.toISOString()}`);
       }
 
-      // Create new key with the calculated duration
+      // Create new key with calculated expiry
       const [newKey] = await db.insert(apiKeys)
         .values({
           key,
           userId,
           expiresAt: expiryDate,
           active: 1,
-          durationDays: totalDays,
+          durationDays,
           createdAt: now
         })
         .returning();
