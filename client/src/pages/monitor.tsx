@@ -37,13 +37,6 @@ function formatMonitorTitle(params: SearchParams): string {
   return parts.length > 0 ? parts.join(' ') : "All items on all marketplaces";
 }
 
-function formatUpdateFrequency(seconds: number): string {
-  if (seconds < 60) {
-    return `Updates every ${seconds} seconds`;
-  }
-  const minutes = Math.floor(seconds / 60);
-  return `Updates every ${minutes} minute${minutes > 1 ? 's' : ''}`;
-}
 
 export default function Monitor() {
   const [monitors, setMonitors] = useState<Monitor[]>([]);
@@ -52,7 +45,6 @@ export default function Monitor() {
     marketplace: "all",
     minPrice: undefined,
     maxPrice: undefined,
-    updateFrequency: 30
   });
   const { toast } = useToast();
   const { user } = useAuth();
@@ -82,7 +74,10 @@ export default function Monitor() {
   const startNewMonitor = async () => {
     try {
       console.log("Starting monitor with params:", searchParams);
-      const res = await apiRequest("POST", "/api/monitor/start", searchParams);
+      const res = await apiRequest("POST", "/api/monitor/start", {
+        ...searchParams,
+        updateFrequency: 30 // Fixed 30-second interval
+      });
       const data = await res.json();
 
       // Add new monitor with empty products array
@@ -177,7 +172,7 @@ export default function Monitor() {
                               {formatMonitorTitle(monitor.params)}
                             </h3>
                             <p className="text-sm text-gray-400">
-                              {formatUpdateFrequency(monitor.params.updateFrequency)}
+                              Updates every 30 seconds
                             </p>
                           </div>
                           <Button
@@ -210,7 +205,7 @@ export default function Monitor() {
                   <Alert className="bg-primary/5 border-primary/20">
                     <AlertTriangle className="h-4 w-4 text-primary" />
                     <AlertDescription className="text-primary/80">
-                      Set your search criteria and update frequency, then start monitoring. You can have multiple monitors running at the same time.
+                      Set your search criteria and start monitoring. You can have multiple monitors running at the same time.
                     </AlertDescription>
                   </Alert>
 
@@ -218,7 +213,7 @@ export default function Monitor() {
                     onSearch={setSearchParams}
                     defaultValues={searchParams}
                     hideSearchButton={true}
-                    showFrequencySlider={true}
+                    showFrequencySlider={false}
                   />
 
                   <Button

@@ -20,7 +20,6 @@ export const monitors = pgTable("monitors", {
   params: text("params").notNull().$type<SearchParams>(),
   lastCheckedAt: timestamp("last_checked_at"),
   active: integer("active").default(1),
-  updateFrequency: integer("update_frequency").default(30).notNull(),
   userId: integer("user_id").notNull(),
 });
 
@@ -57,7 +56,6 @@ export const searchParamsSchema = z.object({
   marketplace: z.enum(['all', 'olx', 'vinted', 'allegro']).optional(),
   minPrice: z.number().optional(),
   maxPrice: z.number().optional(),
-  updateFrequency: z.number().min(10).max(300).default(30),
 });
 
 export type SearchParams = z.infer<typeof searchParamsSchema>;
