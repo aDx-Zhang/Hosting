@@ -232,83 +232,53 @@ export class DatabaseStorage implements IStorage {
     log(`Starting addApiKey process for user ${userId} with ${durationDays} days duration`);
 
     try {
-      // Step 1: Deactivate any existing keys
-      await db.execute(
-        `UPDATE api_keys SET active = 0 WHERE user_id = $1`,
-        [userId]
-      );
-      log('Deactivated existing keys');
-
-      // Step 2: Find latest expiring key to calculate total duration
+      // Find latest active key with remaining time
       const [latestKey] = await db.select()
         .from(apiKeys)
         .where(
           and(
             eq(apiKeys.userId, userId),
+            eq(apiKeys.active, 1),
             gte(apiKeys.expiresAt, now)
           )
         )
         .orderBy(desc(apiKeys.expiresAt))
         .limit(1);
 
-      // Step 3: Calculate total duration first
+      // Calculate total duration and expiry date
       let totalDays = durationDays;
-      let startDate = now;
+      let expiryDate = new Date(now.getTime() + (durationDays * millisecondsPerDay));
 
       if (latestKey) {
         // Calculate remaining time from latest key
         const remainingMs = latestKey.expiresAt.getTime() - now.getTime();
         const remainingDays = Math.ceil(remainingMs / millisecondsPerDay);
 
-        // Add new duration to remaining days
+        // Add new duration to the existing expiry date
+        expiryDate = new Date(latestKey.expiresAt.getTime() + (durationDays * millisecondsPerDay));
         totalDays = remainingDays + durationDays;
-        startDate = now; // Always start from now
 
-        log(`Found latest key expiring at: ${latestKey.expiresAt.toISOString()}`);
+        log(`Found active key expiring at: ${latestKey.expiresAt.toISOString()}`);
         log(`Remaining days: ${remainingDays}`);
-        log(`New duration days: ${durationDays}`);
-        log(`Total days calculated: ${totalDays}`);
+        log(`Adding ${durationDays} more days`);
+        log(`Total duration will be: ${totalDays} days`);
       } else {
-        log('No existing keys with remaining time');
-        log(`Using standard duration: ${durationDays} days`);
+        log(`No active keys found, creating new key with ${durationDays} days duration`);
       }
 
-      // Step 4: Calculate expiry date using total duration
-      const durationMs = totalDays * millisecondsPerDay;
-      const expiryDate = new Date(startDate.getTime() + durationMs);
+      // Create new key with the calculated duration
+      const [newKey] = await db.insert(apiKeys)
+        .values({
+          key,
+          userId,
+          expiresAt: expiryDate,
+          active: 1,
+          durationDays: totalDays,
+          createdAt: now
+        })
+        .returning();
 
-      log(`Start date: ${startDate.toISOString()}`);
-      log(`Duration in ms: ${durationMs}`);
-      log(`Expiry date: ${expiryDate.toISOString()}`);
-
-      // Step 5: Create new key in a transaction
-      await db.transaction(async (tx) => {
-        const [newKey] = await tx.insert(apiKeys)
-          .values({
-            key,
-            userId,
-            expiresAt: expiryDate,
-            active: 1,
-            durationDays: totalDays, // Use total days for duration
-            createdAt: now
-          })
-          .returning();
-
-        log(`Created new key ${newKey.id} with total duration of ${totalDays} days`);
-
-        // Verify only one active key exists
-        const verification = await tx.execute(
-          `SELECT COUNT(*) as active_count FROM api_keys WHERE user_id = $1 AND active = 1`,
-          [userId]
-        );
-
-        const activeCount = parseInt(verification.rows?.[0]?.active_count || '0');
-        if (activeCount !== 1) {
-          throw new Error(`Verification failed: Found ${activeCount} active keys instead of 1`);
-        }
-
-        log(`Successfully created key ${newKey.id} with expiry at ${expiryDate.toISOString()}`);
-      });
+      log(`Created new key ${newKey.id} expiring at ${expiryDate.toISOString()}`);
 
     } catch (error) {
       log(`Error in addApiKey: ${error}`);
