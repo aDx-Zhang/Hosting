@@ -37,7 +37,8 @@ export class DatabaseStorage implements IStorage {
           // Ensure prices are converted to strings for database storage
           const products = result.value.map(product => ({
             ...product,
-            price: product.price.toString()
+            price: product.price.toString(),
+            foundAt: new Date() // Set foundAt to current time for new products
           }));
           allProducts.push(...products);
         }
@@ -69,39 +70,26 @@ export class DatabaseStorage implements IStorage {
         );
       }
 
-      // Store filtered products in database with current timestamp
-      const now = new Date();
+      // Store filtered products but only return ones found after monitor creation
+      for (const product of filteredProducts) {
+        try {
+          await this.createProduct(product);
+        } catch (error) {
+          log(`Error storing product: ${error}`);
+        }
+      }
 
-      // Only store and return products found after monitor creation
       if (monitorCreatedAt) {
         log(`Filtering products found after monitor creation: ${monitorCreatedAt}`);
-        // Store products but only return the new ones
-        for (const product of filteredProducts) {
-          try {
-            await this.createProduct({
-              ...product,
-              foundAt: now
-            });
-          } catch (error) {
-            log(`Error storing product: ${error}`);
-          }
-        }
-        // Return only products found after monitor creation
-        return filteredProducts.filter(product => new Date(product.foundAt) > monitorCreatedAt);
-      } else {
-        // If no monitor creation time provided, store and return all products
-        for (const product of filteredProducts) {
-          try {
-            await this.createProduct({
-              ...product,
-              foundAt: now
-            });
-          } catch (error) {
-            log(`Error storing product: ${error}`);
-          }
-        }
-        return filteredProducts;
+        // Only return products found after monitor creation
+        const newProducts = filteredProducts.filter(product =>
+          new Date(product.foundAt) > monitorCreatedAt
+        );
+        log(`Found ${newProducts.length} new products after monitor creation`);
+        return newProducts;
       }
+
+      return [];
     } catch (error) {
       log(`Error searching products: ${error}`);
       return [];
@@ -145,13 +133,13 @@ export class DatabaseStorage implements IStorage {
       params: monitors.params,
       createdAt: monitors.createdAt
     })
-    .from(monitors)
-    .where(
-      and(
-        eq(monitors.active, 1),
-        eq(monitors.userId, userId)
-      )
-    );
+      .from(monitors)
+      .where(
+        and(
+          eq(monitors.active, 1),
+          eq(monitors.userId, userId)
+        )
+      );
 
     return activeMonitors;
   }
@@ -162,8 +150,8 @@ export class DatabaseStorage implements IStorage {
       params: monitors.params,
       createdAt: monitors.createdAt
     })
-    .from(monitors)
-    .where(eq(monitors.id, id));
+      .from(monitors)
+      .where(eq(monitors.id, id));
 
     return monitor;
   }
@@ -179,30 +167,12 @@ export class DatabaseStorage implements IStorage {
     const monitor = await this.getMonitorById(monitorId);
     if (!monitor) return;
 
-    // First check if this product is already in the database
-    const [existingProduct] = await db.select()
-      .from(products)
-      .where(
-        and(
-          eq(products.originalUrl, product.originalUrl),
-          eq(products.marketplace, product.marketplace),
-          gt(products.foundAt, monitor.createdAt) // Only consider products found after monitor creation
-        )
-      );
+    log(`Adding product ${product.title} to monitor ${monitorId}, monitor created at ${monitor.createdAt}`);
 
-    let productId: number;
-
-    if (existingProduct) {
-      productId = existingProduct.id;
-    } else {
-      // This is a new product, add it to the database
-      const [newProduct] = await db.insert(products)
-        .values({
-          ...product,
-          foundAt: new Date()
-        })
-        .returning();
-      productId = newProduct.id;
+    // Skip if product was found before monitor creation
+    if (new Date(product.foundAt) <= monitor.createdAt) {
+      log(`Skipping old product found before monitor creation: ${product.title}`);
+      return;
     }
 
     // Check if this product is already linked to this monitor
@@ -211,7 +181,7 @@ export class DatabaseStorage implements IStorage {
       .where(
         and(
           eq(monitorProducts.monitorId, monitorId),
-          eq(monitorProducts.productId, productId)
+          eq(monitorProducts.productId, product.id)
         )
       );
 
@@ -220,12 +190,12 @@ export class DatabaseStorage implements IStorage {
       await db.insert(monitorProducts)
         .values({
           monitorId,
-          productId,
+          productId: product.id,
           createdAt: new Date()
         })
         .returning();
 
-      log(`Found new product: ${product.title} for monitor ${monitorId}`);
+      log(`Broadcasting new product: ${product.title} for monitor ${monitorId}`);
       broadcastUpdate({
         type: 'new_monitored_products',
         products: [product],
