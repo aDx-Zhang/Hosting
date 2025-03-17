@@ -1,5 +1,5 @@
-import { type Product, type InsertProduct, type SearchParams, type MonitorProduct } from "@shared/schema";
-import { products, monitors, monitorProducts, apiKeys } from "@shared/schema";
+import { type Product, type InsertProduct, type SearchParams, type MonitorProduct, type User } from "@shared/schema";
+import { products, monitors, monitorProducts, apiKeys, users } from "@shared/schema";
 import { broadcastUpdate } from "./routes";
 import { log } from "./vite";
 import { db } from "./db";
@@ -16,6 +16,7 @@ export interface IStorage {
   addProductToMonitor(monitorId: number, product: Product): Promise<void>;
   getUserSubscriptionInfo(userId: number): Promise<{ expiresAt: Date; active: boolean } | null>;
   addApiKey(key: string, userId: number, durationDays: number): Promise<void>;
+  getUserById(id: number): Promise<User | undefined>;
 }
 
 export class DatabaseStorage implements IStorage {
@@ -285,6 +286,10 @@ export class DatabaseStorage implements IStorage {
       log(`Error in addApiKey: ${error}`);
       throw new Error('Failed to add API key');
     }
+  }
+  async getUserById(id: number): Promise<User | undefined> {
+    const [user] = await db.select().from(users).where(eq(users.id, id));
+    return user;
   }
 }
 
