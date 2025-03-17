@@ -3,7 +3,7 @@ import { WebSocketServer, WebSocket } from "ws";
 import { createServer } from "http";
 import type { Express } from "express";
 import { storage } from "./storage";
-import { searchParamsSchema, insertProductSchema } from "@shared/schema";
+import { searchParamsSchema } from "@shared/schema";
 import { log } from "./vite";
 import { monitoringService } from "./services/monitor";
 import { authRouter } from "./routes/auth";
@@ -48,46 +48,6 @@ export async function registerRoutes(app: Express) {
     } catch (error) {
       log(`Search validation error: ${error}`);
       res.status(400).json({ error: "Invalid search parameters" });
-    }
-  });
-
-  // New endpoint for creating test products
-  app.post("/api/products/test", async (req, res) => {
-    try {
-      if (!req.session.userId) {
-        return res.status(401).json({ error: "Not authenticated" });
-      }
-
-      const user = await storage.getUserById(req.session.userId);
-      if (!user || user.role !== 'admin') {
-        return res.status(403).json({ error: "Not authorized" });
-      }
-
-      // Parse and create the product
-      const productData = insertProductSchema.parse(req.body);
-      log(`Creating test product: ${productData.title}`);
-
-      const createdProduct = await storage.createProduct(productData);
-      log(`Successfully created test product with ID: ${createdProduct.id}`);
-
-      // Get all active monitors to broadcast the new product
-      const monitors = await storage.getActiveMonitors(req.session.userId);
-      log(`Found ${monitors.length} active monitors to update`);
-
-      // Add product to each monitor
-      for (const monitor of monitors) {
-        try {
-          await storage.addProductToMonitor(monitor.id, createdProduct);
-          log(`Added product to monitor ${monitor.id}`);
-        } catch (error) {
-          log(`Error adding product to monitor ${monitor.id}: ${error}`);
-        }
-      }
-
-      res.json(createdProduct);
-    } catch (error) {
-      log(`Error creating test product: ${error}`);
-      res.status(400).json({ error: "Failed to create test product" });
     }
   });
 
